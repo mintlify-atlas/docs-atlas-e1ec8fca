@@ -1,0 +1,538 @@
+---
+title: Features
+description: Comprehensive guide to all Cotizador Online OSPADEP capabilities
+---
+
+## Overview
+
+Cotizador Online OSPADEP offers a complete healthcare quotation ecosystem with features for both end-users and administrators.
+
+## Core Quotation Features
+
+### Multi-Step Quotation Flow
+
+The system guides users through a progressive disclosure interface:
+
+<CardGroup cols={3}>
+  <Card title="Step 1: Plan Type" icon="list">
+    Select family composition from four predefined options, each triggering appropriate form fields
+  </Card>
+  <Card title="Step 2: Information" icon="edit">
+    Dynamic form generation based on selection with real-time validation
+  </Card>
+  <Card title="Step 3: Results" icon="chart-bar">
+    Personalized pricing across all providers with filtering and comparison tools
+  </Card>
+</CardGroup>
+
+**Why it matters:** This progressive approach reduces cognitive load and ensures accurate quotations by collecting only relevant information at each stage.
+
+### Healthcare Provider Support
+
+The system integrates pricing from 7 major healthcare providers with 30+ total plans:
+
+#### OMINT (5 Plans)
+
+<Info>
+Pricing structure: `estructura_compleja` with age-based role differentiation
+</Info>
+
+**Available Plans:**
+- **Plan 2500**: Entry-level coverage ($92,859 - $413,701 based on age)
+- **Plan 4500**: Mid-tier coverage ($125,039 - $556,746)
+- **Plan 6500**: ⭐ Recommended - Comprehensive coverage ($158,759 - $664,100)
+- **Plan 8500**: Premium coverage ($272,996 - $909,903)
+- **Plan Comunidad Sin Copago**: Community plan with no copays ($94,221 - $418,940)
+
+**Pricing Model:**
+```javascript
+// From script.js:1053-1108
+// OMINT uses role-specific pricing:
+// - adultoConyugue: Primary subscriber and spouse
+// - hijo1Menor: First child under 25
+// - hijo2MasMenores: Additional children under 25
+// Children 25+ are priced as adultoConyugue
+```
+
+#### Swiss Medical (3 Plans)
+
+<Info>
+Pricing structure: `plantilla_adultos_solo` - All family members priced as adults
+</Info>
+
+**Available Plans:**
+- **Plan PO62**: Integral coverage ($277,459 ≤65 / $806,229 >65)
+- **Plan PO64**: ⭐ Recommended - Premium coverage ($332,704 ≤65 / $965,409 >65)
+- **Plan SB04**: Basic coverage ($218,812 ≤65 / $598,367 >65)
+
+**Pricing Model:**
+```javascript
+// From script.js:1118-1161
+// Swiss Medical pricing: NO family discounts
+// All members (including children) priced at adult rates
+// Only age matters: ≤65 years or >65 years
+```
+
+#### MEDIFE (3 Plans)
+
+<Info>
+Pricing structure: `estructura_matrimonio_hijos` with individual/spouse/children tiers
+</Info>
+
+**Available Plans:**
+- **Plan Bronce**: Basic tier ($121,352 - $313,450 individual)
+- **Plan Plata**: ⭐ Recommended - Standard tier ($146,277 - $397,819 individual)
+- **Plan Oro**: Premium tier ($166,234 - $457,144 individual)
+
+**Unique Features:**
+- Separate pricing for individual vs. matrimonio (married couple)
+- Differentiated child pricing: 1st child, 2nd child, adult children (21-29), and dependents
+
+#### Activa Salud (5 Plans)
+
+**Available Plans:**
+- **Plan AS 25**: Entry-level ($76,876 per capita)
+- **Plan AS 300**: Standard with age tiers ($88,704 ≤65 / $133,266 >65)
+- **Plan AS 700**: Superior coverage ($100,532 per capita)
+- **Plan AS 800**: Maximum coverage ($124,185 per capita)
+- **Plan AS 900**: Top-tier ($131,776 per capita)
+
+#### OSPADEP Salud (3 Plans)
+
+<Info>
+Exclusive plans for OSPADEP members with member/particular pricing tiers
+</Info>
+
+**Available Plans:**
+- **Plan OS25**: Basic coverage (8 age groups from $74,087 to $222,262)
+- **Plan OS300**: ⭐ Recommended - Intermediate coverage ($93,754 to $281,261)
+- **Plan OS900**: Premium coverage ($111,692 to $331,263)
+
+**Special Feature:**
+```javascript
+// From precios-data.json:555-797
+// Dual pricing structure:
+// - preciosPorEdad: Member pricing (lower rates)
+// - preciosPorEdadParticular: Non-member pricing
+```
+
+#### Regional Plans
+
+- **SW Nubial Plan MS**: CABA/GBA only ($183,669 ≤65 / $521,780 >65)
+- **Swiss Plan SB02**: National coverage ($213,489 ≤65 / $724,377 >65)
+
+### Dynamic Price Calculator
+
+The system includes a sophisticated calculation engine:
+
+<CardGroup cols={2}>
+  <Card title="Age-Based Pricing" icon="calendar">
+    Multiple age group systems depending on provider (5 groups for OMINT, 2 for Swiss, 8 for OSPADEP Salud)
+  </Card>
+  <Card title="Family Composition" icon="users">
+    Automatic detection and calculation for individual, couple, children, and complete family structures
+  </Card>
+  <Card title="Role Differentiation" icon="user-tag">
+    Primary subscriber, spouse, first child, additional children, and adult dependents
+  </Card>
+  <Card title="Real-Time Calculation" icon="bolt">
+    Instant price updates as form data changes
+  </Card>
+</CardGroup>
+
+**Calculation Examples:**
+
+```javascript
+// OMINT Family Example (from script.js:1053-1108)
+Family: Adult 35, Partner 33, Children ages 8, 10
+Plan: OMINT 6500
+
+Calculation:
+- Titular (35, group "26-35"): $227,182
+- Spouse (33, group "26-35"): $227,182  
+- Child 1 (8): $138,785
+- Child 2 (10): $120,514
+Total: $713,663/month
+```
+
+```javascript
+// Swiss Medical Example (from script.js:1118-1161)
+Family: Adult 40, Partner 38, Child age 12
+Plan: Swiss Medical PO64
+
+Calculation:
+- Titular (40, ≤65): $332,704
+- Spouse (38, ≤65): $332,704
+- Child (12, ≤65): $332,704 (NO DISCOUNT)
+Total: $998,112/month
+```
+
+### Plan Recommendations
+
+The system highlights recommended plans based on:
+
+- **Value for money**: Coverage-to-price ratio
+- **Popular selections**: Most commonly chosen in each tier
+- **Comprehensive coverage**: Plans with broader benefits
+
+```javascript
+// From precios-data.json - Recommendation flag
+"recommended": true  // Appears on plan cards with star badge
+```
+
+## Admin Panel Features
+
+### Access and Authentication
+
+<Warning>
+Admin panel access requires authentication. Default credentials in `auth-system.js:35-46`
+</Warning>
+
+**Authentication Features:**
+
+<CardGroup cols={2}>
+  <Card title="Session Management" icon="clock">
+    8-hour session timeout with automatic extension on activity
+  </Card>
+  <Card title="Inactivity Logout" icon="user-slash">
+    30-minute automatic logout after inactivity
+  </Card>
+  <Card title="Session Restoration" icon="redo">
+    Automatic session restore on page reload
+  </Card>
+  <Card title="Audit Logging" icon="file-alt">
+    Complete login/logout activity tracking
+  </Card>
+</CardGroup>
+
+**Implementation:**
+
+```javascript
+// From auth-system.js:197-265
+async login(username, password) {
+    // Validates credentials
+    // Creates session with sessionId
+    // Sets 8-hour expiration
+    // Logs activity with timestamp, IP, user agent
+    // Returns session data and user permissions
+}
+```
+
+### Multi-User System
+
+Role-based access control with three permission levels:
+
+| Role | Permissions | Description |
+|------|-------------|-------------|
+| **Super Admin** | All permissions | Full system access, user management, pricing control |
+| **Admin** | Price updates, plan management, reports | Can manage pricing and view analytics |
+| **User** | View plans, generate quotes | Basic quotation access only |
+
+**User Management Features:**
+
+```javascript
+// From auth-system.js:73-114
+createUser(userData) {
+    // Validates username uniqueness
+    // Enforces password complexity (6+ characters)
+    // Assigns role-based permissions
+    // Logs creation activity
+    // Stores in localStorage
+}
+```
+
+### Price Management
+
+Comprehensive pricing tools for administrators:
+
+#### 1. Percentage-Based Updates
+
+**Use case:** Monthly inflation adjustments, promotional discounts
+
+<Steps>
+  <Step title="Select Provider">
+    Choose which healthcare provider to update (OMINT, Swiss Medical, MEDIFE, etc.)
+  </Step>
+  <Step title="Enter Percentage">
+    Input percentage change (e.g., 3.5 for 3.5% increase, -2.0 for 2% decrease)
+  </Step>
+  <Step title="Apply Changes">
+    System recalculates all plan prices and generates updated `precios-data.json`
+  </Step>
+  <Step title="Download & Deploy">
+    Download the new JSON file and replace the existing `precios-data.json`
+  </Step>
+</Steps>
+
+**Real Implementation:**
+
+```html
+<!-- From index.html:323-434 - Percentage update interface -->
+<div class="prestador-card omint-card">
+  <div class="prestador-input-container">
+    <input type="number" id="omint-percent" step="0.1" placeholder="0.0">
+    <span class="input-suffix">%</span>
+  </div>
+</div>
+<!-- Repeat for each provider -->
+```
+
+#### 2. CSV Import
+
+**Use case:** Bulk updates from external pricing spreadsheets
+
+- Drag-and-drop CSV file upload
+- Automatic parsing and validation
+- Preview before applying
+- Generates updated JSON file
+
+```html
+<!-- From index.html:544-580 - CSV upload interface -->
+<div class="csv-upload-zone">
+  <input type="file" id="csv-file" accept=".csv" onchange="handleCSVFile(event)">
+  <!-- Preview and process functionality -->
+</div>
+```
+
+#### 3. Manual JSON Editor
+
+**Use case:** Precise individual plan adjustments, adding new plans
+
+- Direct JSON editing interface
+- Syntax validation
+- Load current prices
+- Export updated configuration
+
+#### 4. Discount Application
+
+**Use case:** Reverting previous increases, promotional pricing
+
+<Info>
+Symmetric operation to percentage increases - if you applied +2.5%, use 2.5% discount to revert
+</Info>
+
+### Audit Logging System
+
+Comprehensive activity tracking for compliance and monitoring:
+
+<CardGroup cols={2}>
+  <Card title="User Activity" icon="user-check">
+    All login/logout events, failed attempts, session duration
+  </Card>
+  <Card title="Price Changes" icon="dollar-sign">
+    Every pricing modification with before/after values
+  </Card>
+  <Card title="User Management" icon="users-cog">
+    User creation, updates, role changes, deletions
+  </Card>
+  <Card title="System Events" icon="server">
+    Session restorations, timeouts, errors
+  </Card>
+</CardGroup>
+
+**Implementation:**
+
+```javascript
+// From auth-system.js:456-477
+logActivity(action, details = {}) {
+    const logEntry = {
+        id: Date.now(),
+        action: action,
+        userId: this.currentSession?.userId || 'anonymous',
+        timestamp: new Date().toISOString(),
+        details: details,
+        url: window.location.href,
+        userAgent: navigator.userAgent
+    };
+    // Stores in localStorage with 1000-record limit
+}
+```
+
+**Audit Log Actions:**
+- `LOGIN_SUCCESS` / `LOGIN_FAILED`
+- `LOGOUT` / `INACTIVITY_LOGOUT`
+- `SESSION_RESTORED` / `SESSION_EXPIRED`
+- `USER_CREATED` / `USER_UPDATED` / `USER_DELETED`
+- `PRICE_UPDATE` / `BULK_PRICE_UPDATE`
+
+### Data Export & Backup
+
+<CardGroup cols={2}>
+  <Card title="Price Configuration Export" icon="download">
+    Download complete pricing data as JSON with versioning
+  </Card>
+  <Card title="Audit Log Export" icon="file-export">
+    Export activity logs for external analysis
+  </Card>
+  <Card title="User Database Export" icon="users">
+    Export user list and permissions (passwords excluded)
+  </Card>
+  <Card title="System Configuration" icon="cog">
+    Export complete system state for backup/migration
+  </Card>
+</CardGroup>
+
+## Data Management Features
+
+### External Pricing System
+
+The system uses `precios-data.json` for pricing data:
+
+<Info>
+**Current Version:** 2026-02 (February 2026)
+**Last Updated:** 2026-01-16
+</Info>
+
+**Benefits:**
+- Update prices without code changes
+- Version tracking with change history
+- Easy rollback to previous versions
+- Supports multiple pricing structures
+
+**File Structure:**
+
+```json
+{
+  "version": "2026-02",
+  "fechaActualizacion": "2026-01-16",
+  "prestadores": {
+    "omint": { /* plans */ },
+    "swissMedical": { /* plans */ }
+    // ... more providers
+  },
+  "historialCambios": [
+    {
+      "fecha": "2026-01-16",
+      "descripcion": "OSPADEP SALUD +2.8%, OMINT +2.55%",
+      "autor": "Panel Admin"
+    }
+  ]
+}
+```
+
+### Price History Tracking
+
+Automatic recording of all pricing changes:
+
+```javascript
+// From precios-data.json:801-861 - Change history
+"historialCambios": [
+  {
+    "fecha": "2026-01-16",
+    "descripcion": "Actualización FEBRERO 2026: OSPADEP SALUD +2.8%, ACTIVA SALUD +2.8%, OMINT +2.55%, MEDIFE (nuevos precios), SWISS MEDICAL (todos) +2.8%",
+    "autor": "Panel Admin"
+  },
+  // ... previous changes
+]
+```
+
+**Automatically Tracks:**
+- Date and time of change
+- Which providers were updated
+- Percentage or type of change
+- User who made the change
+
+### LocalStorage Architecture
+
+The system uses browser localStorage for:
+
+| Key | Purpose | Size Limit |
+|-----|---------|------------|
+| `ospadep_users` | User accounts and permissions | ~5MB |
+| `ospadep_active_session` | Current session data | ~1KB |
+| `ospadep_audit_log` | Activity logs (last 1000 records) | ~2MB |
+| `ospadep_temp_quotation` | Current quotation state | ~5KB |
+
+## Security Features
+
+<CardGroup cols={2}>
+  <Card title="Password Protection" icon="lock">
+    Admin panel access requires authentication
+  </Card>
+  <Card title="Session Security" icon="shield">
+    Automatic timeout, session validation, token-based auth
+  </Card>
+  <Card title="Role-Based Access" icon="user-shield">
+    Granular permissions by user role
+  </Card>
+  <Card title="Audit Trail" icon="history">
+    Complete activity logging for accountability
+  </Card>
+</CardGroup>
+
+**Security Configuration:**
+
+```javascript
+// From config.js:1-68
+const CONFIG = {
+    SESSION_TIMEOUT: 30, // minutes
+    MAX_LOGIN_ATTEMPTS: 3,
+    LOG_ALL_ACTIONS: true,
+    MAX_AUDIT_RECORDS: 1000
+};
+```
+
+## Integration & Extensibility
+
+### Adding New Healthcare Providers
+
+The system is designed for easy provider addition:
+
+<Steps>
+  <Step title="Define Pricing Structure">
+    Choose appropriate structure type (compleja, adultos_solo, etc.)
+  </Step>
+  <Step title="Add to precios-data.json">
+    Include provider data with all plans and age-based pricing
+  </Step>
+  <Step title="Add Calculation Function">
+    Implement provider-specific calculation logic in `script.js`
+  </Step>
+  <Step title="Update UI">
+    Add provider logo and branding to interface
+  </Step>
+</Steps>
+
+### API Readiness
+
+The system is structured for future backend integration:
+
+```javascript
+// From config.js:31-36 - Placeholder endpoints
+API_BASE_URL: '', // Currently disabled
+BACKUP_ENDPOINT: '/api/backup',
+PRICES_ENDPOINT: '/api/prices',
+SYNC_ENDPOINT: '/api/sync',
+AUDIT_ENDPOINT: '/api/audit'
+```
+
+## Performance Considerations
+
+- **Client-side calculation**: All pricing computed in browser for instant results
+- **External data loading**: Prices loaded once at page load from `precios-data.json`
+- **LocalStorage optimization**: Audit log limited to 1000 most recent entries
+- **Lazy loading**: Plan details loaded only when viewing results
+
+## Troubleshooting Common Issues
+
+<AccordionGroup>
+  <Accordion title="Prices not loading">
+    Check that `precios-data.json` is accessible and valid JSON. Open browser console to see any loading errors.
+  </Accordion>
+  
+  <Accordion title="Admin panel not accessible">
+    Verify credentials in `auth-system.js:35-46`. Check localStorage for existing session that may need clearing.
+  </Accordion>
+  
+  <Accordion title="Quotations showing incorrect prices">
+    Ensure `precios-data.json` version matches expected month. Check browser console for calculation errors.
+  </Accordion>
+  
+  <Accordion title="User sessions not persisting">
+    Check browser localStorage is enabled and not full. Clear old data if approaching storage limits.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  **Production Deployment:** This system stores all data client-side. For production use, implement server-side authentication, database storage, and secure API endpoints.
+</Warning>

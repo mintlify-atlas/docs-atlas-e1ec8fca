@@ -1,0 +1,373 @@
+---
+title: 'Gestión de Precios'
+description: 'Edición individual de precios, histórico y restauración'
+icon: 'dollar-sign'
+---
+
+## Descripción General
+
+La gestión de precios te permite realizar ajustes específicos a planes individuales, consultar el histórico completo de cambios y restaurar valores originales cuando sea necesario.
+
+## Edición Individual de Precios
+
+### Cuándo Usar Edición Individual
+
+<Info>
+  Ideal para ajustes específicos de planes particulares sin afectar a otros planes.
+</Info>
+
+**Casos de uso comunes:**
+- Ajustar el precio de un plan específico
+- Corregir errores de precio
+- Aplicar descuentos promocionales a planes seleccionados
+- Actualizar planes que tuvieron cambios de cobertura
+
+### Proceso de Edición
+
+<Steps>
+  <Step title="Acceder a la edición">
+    En el panel administrativo, haz clic en **"Edición Individual"**.
+  </Step>
+  
+  <Step title="Buscar el plan">
+    Verás una lista con todos los planes disponibles, organizados por categoría (individual/familiar).
+  </Step>
+  
+  <Step title="Modificar el precio">
+    Modifica directamente el valor en el campo de precio del plan que deseas actualizar.
+    
+    Los cambios se muestran en tiempo real:
+    - **Verde**: Indica un aumento respecto al precio original
+    - **Rojo**: Indica una disminución respecto al precio original
+  </Step>
+  
+  <Step title="Guardar cambios">
+    Haz clic en **"Guardar Cambios"** para aplicar las modificaciones.
+  </Step>
+</Steps>
+
+### Ejemplo Práctico
+
+```javascript
+// Estructura de datos de un plan
+{
+  name: "OMINT PLAN 4500",
+  price: 189278,  // Precio actual
+  originalPrice: 189278,  // Precio original
+  category: "familiar"
+}
+```
+
+Si modificas el precio de `189278` a `195000`, el sistema:
+1. Calcula la diferencia: `+$5,722`
+2. Muestra el cambio en verde
+3. Guarda el nuevo precio al confirmar
+4. Registra la acción en el histórico
+
+<Warning>
+  Los cambios en precios se aplican inmediatamente al guardar y afectan todas las cotizaciones nuevas.
+</Warning>
+
+## Visualización de Precios Actuales
+
+### Vista General
+
+La sección **"Precios Actuales"** muestra:
+
+- Todos los planes con sus precios actualizados
+- Indicadores visuales de precios modificados
+- Precio original (tachado) si fue modificado
+- Estado: Original o Modificado
+
+### Ejemplo de Visualización
+
+<CodeGroup>
+```text Plan Sin Modificar
+OMINT PLAN 2500
+Precio: $82,599
+Estado: Original
+```
+
+```text Plan Modificado
+OMINT PLAN 4500
+Precio: $195,000
+Precio original: $189,278
+Estado: Modificado (+3.0%)
+```
+</CodeGroup>
+
+## Histórico de Cambios
+
+### Registro Automático
+
+<Info>
+  Todas las modificaciones de precios se registran automáticamente con información detallada.
+</Info>
+
+**Información registrada:**
+- Fecha y hora exacta del cambio
+- Descripción de la operación
+- Usuario que realizó el cambio
+- Cantidad de planes afectados
+- Detalles específicos de cada cambio
+
+### Consultar el Histórico
+
+<Steps>
+  <Step title="Acceder al histórico">
+    En el panel administrativo, ve a la sección **"Histórico de Cambios"**.
+  </Step>
+  
+  <Step title="Revisar entradas">
+    El histórico muestra las últimas 50 operaciones en orden cronológico descendente (más recientes primero).
+  </Step>
+  
+  <Step title="Ver detalles">
+    Cada entrada incluye:
+    - Tipo de operación (masiva, individual, restauración)
+    - Fecha/hora
+    - Cantidad de planes afectados
+    - Descripción detallada
+  </Step>
+</Steps>
+
+### Ejemplo de Entrada del Histórico
+
+```json
+{
+  "id": 1732895600000,
+  "timestamp": "2025-03-05T14:30:00.000Z",
+  "type": "bulk_increase",
+  "description": "Aumento masivo del 1.5% aplicado a todos los planes",
+  "plansAffected": 24,
+  "changes": [
+    {
+      "plan": "OMINT PLAN 4500",
+      "category": "familiar",
+      "oldPrice": 189278,
+      "newPrice": 192119,
+      "change": 2841
+    }
+  ],
+  "user": "admin_user"
+}
+```
+
+### Límite de Registros
+
+<Warning>
+  El sistema mantiene los últimos 50 cambios. Exporta el histórico regularmente si necesitas conservar registros antiguos.
+</Warning>
+
+## Restaurar Precios Originales
+
+### Cuándo Restaurar
+
+Usa esta función cuando necesites:
+- Volver a los precios iniciales del sistema
+- Corregir múltiples cambios erróneos
+- Resetear todos los precios antes de aplicar nuevos ajustes
+
+### Proceso de Restauración
+
+<Steps>
+  <Step title="Acceder a la función">
+    En el panel administrativo, haz clic en **"Restaurar Precios Originales"**.
+  </Step>
+  
+  <Step title="Confirmar acción">
+    El sistema mostrará una confirmación indicando que todos los precios volverán a sus valores iniciales.
+    
+    <Warning>
+      Esta acción no se puede deshacer fácilmente. Exporta tu configuración actual antes de proceder.
+    </Warning>
+  </Step>
+  
+  <Step title="Aplicar restauración">
+    Confirma la acción. Todos los planes volverán a sus precios originales inmediatamente.
+  </Step>
+  
+  <Step title="Verificar cambios">
+    Revisa la lista de precios actuales para confirmar la restauración.
+  </Step>
+</Steps>
+
+### Código de Restauración
+
+```javascript
+// Función de restauración en script.js
+function restoreOriginalPrices() {
+  // Restaurar desde respaldo original
+  Object.keys(planesData).forEach(categoryKey => {
+    planesData[categoryKey] = JSON.parse(
+      JSON.stringify(originalPrices[categoryKey])
+    );
+  });
+  
+  // Limpiar precios personalizados
+  localStorage.removeItem('ospadep_custom_prices');
+  
+  // Registrar en histórico
+  addToHistory({
+    type: 'restore',
+    description: 'Precios restaurados a valores originales'
+  });
+}
+```
+
+## Exportar Configuración
+
+### Qué se Exporta
+
+Al exportar la configuración, se genera un archivo JSON que contiene:
+
+- **Precios originales**: Valores iniciales del sistema
+- **Precios actuales**: Valores modificados (si los hay)
+- **Histórico de cambios**: Últimas 50 modificaciones
+- **Fecha y hora de exportación**: Timestamp del respaldo
+- **Versión del sistema**: Para compatibilidad futura
+
+### Proceso de Exportación
+
+<Steps>
+  <Step title="Iniciar exportación">
+    En el panel administrativo, haz clic en **"Exportar Configuración"**.
+  </Step>
+  
+  <Step title="Descarga automática">
+    Se descargará automáticamente un archivo JSON con el nombre:
+    
+    `ospadep_config_YYYY-MM-DD.json`
+  </Step>
+  
+  <Step title="Guardar respaldo">
+    Almacena el archivo en un lugar seguro. Este respaldo te permitirá restaurar la configuración en cualquier momento.
+  </Step>
+</Steps>
+
+### Estructura del Archivo Exportado
+
+```json
+{
+  "version": "2.0",
+  "exportDate": "2025-03-05T14:30:00.000Z",
+  "originalPrices": {
+    "omint": {
+      "planes": {
+        "plan4500": {
+          "preciosPorEdad": {
+            "26-35": {
+              "adultoConyugue": 161234
+            }
+          }
+        }
+      }
+    }
+  },
+  "currentPrices": {
+    "omint": {
+      "planes": {
+        "plan4500": {
+          "preciosPorEdad": {
+            "26-35": {
+              "adultoConyugue": 165000
+            }
+          }
+        }
+      }
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2025-03-05T14:30:00.000Z",
+      "type": "bulk_increase",
+      "description": "Aumento masivo del 2.5%",
+      "plansAffected": 24
+    }
+  ]
+}
+```
+
+## Importar Configuración
+
+<Info>
+  La funcionalidad de importación permite restaurar respaldos exportados previamente.
+</Info>
+
+### Proceso de Importación
+
+<Steps>
+  <Step title="Seleccionar archivo">
+    Haz clic en **"Importar Configuración"** y selecciona un archivo JSON exportado anteriormente.
+  </Step>
+  
+  <Step title="Validación">
+    El sistema valida que el archivo tenga el formato correcto y sea compatible con la versión actual.
+  </Step>
+  
+  <Step title="Confirmar importación">
+    Revisa el resumen de cambios y confirma la importación.
+  </Step>
+  
+  <Step title="Aplicar cambios">
+    Los precios y configuraciones se restauran según el respaldo importado.
+  </Step>
+</Steps>
+
+## Validaciones del Sistema
+
+### Validaciones Automáticas
+
+El sistema realiza las siguientes validaciones:
+
+<AccordionGroup>
+  <Accordion title="Precios válidos">
+    - No se permiten precios negativos
+    - No se permiten precios igual a cero
+    - Solo se aceptan números enteros
+  </Accordion>
+  
+  <Accordion title="Confirmaciones obligatorias">
+    - Todas las operaciones masivas requieren confirmación
+    - La restauración de precios solicita doble confirmación
+    - Los cambios críticos muestran advertencias
+  </Accordion>
+  
+  <Accordion title="Cálculos automáticos">
+    - Los porcentajes se aplican con redondeo al entero más cercano
+    - Se mantienen dos decimales para operaciones intermedias
+    - Los totales se calculan automáticamente
+  </Accordion>
+</AccordionGroup>
+
+## Mejores Prácticas
+
+<Steps>
+  <Step title="Respaldo antes de cambios">
+    Siempre exporta la configuración actual antes de realizar modificaciones importantes.
+  </Step>
+  
+  <Step title="Verifica los cambios">
+    Después de aplicar modificaciones, revisa la lista de precios actuales para confirmar.
+  </Step>
+  
+  <Step title="Documenta cambios">
+    El sistema registra automáticamente, pero mantén tu propia documentación de decisiones de negocio.
+  </Step>
+  
+  <Step title="Respaldo post-cambios">
+    Exporta nuevamente después de cambios significativos.
+  </Step>
+</Steps>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Actualizaciones Masivas" icon="percentage" href="/admin/bulk-updates">
+    Aprende a aplicar cambios porcentuales a múltiples planes.
+  </Card>
+  
+  <Card title="Sistema de Auditoría" icon="clipboard-list" href="/admin/audit-system">
+    Revisa los logs de auditoría y actividad de usuarios.
+  </Card>
+</CardGroup>

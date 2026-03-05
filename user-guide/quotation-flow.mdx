@@ -1,0 +1,277 @@
+---
+title: 'Quotation Flow'
+description: 'Complete guide to the multi-step quotation process in Cotizador Online OSPADEP'
+icon: 'arrow-progress'
+---
+
+## Overview
+
+The quotation system guides you through a three-step process to calculate personalized healthcare plan pricing based on your family composition and ages. The system dynamically adapts based on your selections to provide accurate pricing from multiple healthcare providers.
+
+<Steps>
+  <Step title="Select Family Type">
+    In the first step, you choose the family composition that matches your situation. This determines which information fields you'll need to complete in the next step.
+
+    ### Available Options
+
+    <CardGroup cols={2}>
+      <Card title="Para mí" icon="user">
+        Individual plan for one person
+      </Card>
+      <Card title="Para mí y mi pareja" icon="user-friends">
+        Family plan for 2 people (couple)
+      </Card>
+      <Card title="Para mí y mis hijos" icon="baby">
+        Family plan with children included (single parent)
+      </Card>
+      <Card title="Para mi familia completa" icon="home">
+        Complete family plan (couple + children)
+      </Card>
+    </CardGroup>
+
+    ### How It Works
+
+    Click on any option card to select it. The selected option will be highlighted and the "Continuar" button will become active.
+
+    ```javascript
+    // Selection stored in selectedOption variable
+    let selectedOption = null; // Values: 'solo', 'pareja', 'hijos', 'familia'
+    ```
+
+    <Note>
+      Your selection determines the form fields shown in Step 2. For example, selecting "Para mi familia completa" will show fields for both partner age and children ages.
+    </Note>
+  </Step>
+
+  <Step title="Enter Family Member Details">
+    Based on your family type selection, you'll see a dynamic form requesting specific information about each family member's age.
+
+    ### Required Information by Family Type
+
+    <Tabs>
+      <Tab title="Solo">
+        - **Edad (Your age)**: Required for calculating base pricing
+      </Tab>
+      <Tab title="Pareja">
+        - **Tu edad (Your age)**: Primary holder age
+        - **Edad de tu pareja (Partner's age)**: Second capita age
+      </Tab>
+      <Tab title="Hijos">
+        - **Tu edad (Your age)**: Primary holder age
+        - **Número de hijos menores de 21**: Count of children under 21
+        - **Edad de cada hijo menor**: Individual ages for each child
+        - **Número de hijos mayores de 21**: Count of adult children
+        - **Edad de cada hijo mayor**: Individual ages for each adult child
+      </Tab>
+      <Tab title="Familia Completa">
+        - **Tu edad (Your age)**: Primary holder age
+        - **Edad de tu pareja (Partner's age)**: Second capita age
+        - **Número de hijos menores de 21**: Count of children under 21
+        - **Edad de cada hijo menor**: Individual ages for each child
+        - **Número de hijos mayores de 21**: Count of adult children
+        - **Edad de cada hijo mayor**: Individual ages for each adult child
+      </Tab>
+    </Tabs>
+
+    ### Dynamic Form Generation
+
+    The system generates form fields dynamically based on your selection from Step 1:
+
+    ```javascript
+    // Form fields generated in form-fields container
+    const formFields = document.getElementById('form-fields');
+    
+    // Example: Adding children age inputs dynamically
+    if (composicionFamiliar.tieneMenores) {
+      // Creates input fields for each child
+      for (let i = 0; i < numMenores; i++) {
+        // Field: "Edad del hijo menor #1", etc.
+      }
+    }
+    ```
+
+    <Info>
+      The form validates that all required fields are completed before allowing you to proceed. Age fields must contain valid numeric values.
+    </Info>
+
+    ### Age Groups Matter
+
+    Different providers use different age brackets for pricing:
+
+    - **OMINT**: 0-25, 26-35, 36-54, 55-59, 60+
+    - **SWISS MEDICAL**: ≤65, >65
+    - **MEDIFE**: 0-29, 30-39, 40-49, 50-59, 60+
+    - **ACTIVA SALUD**: Most plans use single pricing (≤100)
+    - **OSPADEP SALUD**: 18-27, 28-35, 36-40, 41-45, 46-50, 51-55, 56-64, 65+
+
+    The system automatically places each family member in the correct age bracket for each provider.
+  </Step>
+
+  <Step title="View Your Quotation Results">
+    After submitting your information, the system calculates and displays personalized pricing for all available plans from multiple healthcare providers.
+
+    ### Results Display
+
+    The plans are displayed in a grid format with the following information:
+
+    <AccordionGroup>
+      <Accordion title="Plan Card Information">
+        Each plan card shows:
+        - **Provider name and logo** (OMINT, Swiss Medical, Medicus, etc.)
+        - **Plan name** (e.g., "PLAN 6500", "PLAN PO64")
+        - **Total monthly price** calculated for your family composition
+        - **Key features** of the plan
+        - **"Recomendado" badge** for recommended plans
+      </Accordion>
+
+      <Accordion title="Provider Filter">
+        Use the filter bar at the top to show/hide plans by provider:
+        - Click provider buttons to toggle visibility
+        - Multiple providers can be selected simultaneously
+        - Useful when comparing specific providers
+      </Accordion>
+
+      <Accordion title="Price Breakdown">
+        Click on any plan card to see detailed pricing breakdown:
+        - Titular (primary holder) price
+        - Cónyuge (spouse/partner) price (if applicable)
+        - Children pricing (if applicable)
+        - Total family cost
+      </Accordion>
+    </AccordionGroup>
+
+    ### Price Calculation Process
+
+    Behind the scenes, the system:
+
+    1. **Loads pricing data** from `precios-data.json`
+    2. **Determines age brackets** for each family member
+    3. **Applies provider-specific pricing logic**:
+       - OMINT: Special rates for children (hijo1Menor, hijo2MasMenores)
+       - SWISS MEDICAL: All members charged as adults (no child discounts)
+       - MEDIFE: Complex structure with individual/matrimonio/hijos pricing
+       - OSPADEP SALUD: Different pricing for afiliados vs particulares
+    4. **Calculates totals** and displays results
+
+    ```javascript
+    // Example calculation for OMINT structure_compleja
+    function calcularPrecioFinalOMINT(plan, composicion, edadTitular, edadPareja) {
+      let precioTotal = 0;
+      
+      // 1. Add titular price
+      precioTotal += plan.preciosPorEdad[grupoEtario].adultoConyugue;
+      
+      // 2. Add partner price (if applicable)
+      if (composicion.tienePareja) {
+        precioTotal += plan.preciosPorEdad[grupoPareja].adultoConyugue;
+      }
+      
+      // 3. Add children with special rates
+      if (todosLosHijos.length > 0) {
+        precioTotal += plan.preciosPorEdad[grupoEtario].hijo1Menor;
+        if (todosLosHijos.length > 1) {
+          precioTotal += plan.preciosPorEdad[grupoEtario].hijo2MasMenores * (hijosAdicionales);
+        }
+      }
+      
+      return Math.round(precioTotal);
+    }
+    ```
+
+    <Note>
+      Prices shown are monthly premiums. All calculations include the most recent updates from the external pricing file.
+    </Note>
+
+    ### Modifying Your Search
+
+    - Click **"Modificar datos"** to return to Step 2 and change ages
+    - Click **"Volver"** to return to Step 1 and change family composition
+  </Step>
+</Steps>
+
+## Progress Indicator
+
+Throughout the process, a visual progress indicator shows your current step:
+
+```html
+<!-- Step 1: Active -->
+<div class="progress-step active" data-step="1">
+  <div class="step-number">1</div>
+  <span class="step-label">Tipo de Plan</span>
+</div>
+
+<!-- Step 2: Completed -->
+<div class="progress-step completed" data-step="2">
+  <div class="step-number"><i class="fas fa-check"></i></div>
+  <span class="step-label">Información</span>
+</div>
+```
+
+- **Active step**: Highlighted with current step number
+- **Completed steps**: Show checkmark icon
+- **Upcoming steps**: Grayed out
+
+## External Pricing System
+
+The quotation system loads pricing from an external JSON file (`precios-data.json`) for easy updates:
+
+```javascript
+async function cargarPreciosExternos() {
+  try {
+    const response = await fetch('precios-data.json');
+    if (response.ok) {
+      const data = await response.json();
+      prestadoresData = data.prestadores;
+      preciosExternosDisponibles = true;
+      return true;
+    }
+  } catch (error) {
+    // Falls back to internal backup pricing
+    return false;
+  }
+}
+```
+
+<Info>
+  The system includes fallback pricing (respaldo) from September 2025 in case the external file cannot be loaded.
+</Info>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Accurate Ages" icon="calendar">
+    Enter exact ages for the most accurate pricing. Age brackets significantly affect pricing.
+  </Card>
+  <Card title="Include All Members" icon="users">
+    Include all family members who need coverage, even adult children (if they qualify).
+  </Card>
+  <Card title="Compare Providers" icon="balance-scale">
+    Use the filter to compare similar plans across different providers.
+  </Card>
+  <Card title="Review Features" icon="list-check">
+    Check plan features carefully - higher prices often include more comprehensive coverage.
+  </Card>
+</CardGroup>
+
+## Technical Details
+
+### Form Data Storage
+
+```javascript
+let formData = {}; // Stores all entered information
+let validationErrors = {}; // Tracks validation issues
+```
+
+### Composition Structure
+
+```javascript
+const composicionFamiliar = {
+  tienePareja: boolean,
+  tieneMenores: boolean,
+  tieneMayores: boolean,
+  menores: [ages], // Array of ages < 21
+  mayores: [ages]  // Array of ages >= 21
+};
+```
+
+See [Plan Selection](/user-guide/plan-selection) for details on choosing between plans and [Price Calculator](/user-guide/price-calculator) for how pricing calculations work.

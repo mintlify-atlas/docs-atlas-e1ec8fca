@@ -1,0 +1,169 @@
+---
+title: 'Panel de Administración'
+description: 'Acceso y navegación del panel administrativo de OSPADEP'
+icon: 'gear'
+---
+
+## Descripción General
+
+El panel administrativo permite gestionar los precios de todos los planes médicos de manera dinámica y sencilla. Puedes aplicar aumentos porcentuales masivos o editar precios individuales según las necesidades del momento.
+
+## Acceso al Panel
+
+### Contraseña Predeterminada
+
+La contraseña de administrador por defecto es: `ospadep2024`
+
+<Warning>
+  En un entorno de producción, asegúrate de cambiar la contraseña en el código fuente (constante `ADMIN_PASSWORD` en `script.js`) para mayor seguridad.
+</Warning>
+
+### Cómo Acceder
+
+<Steps>
+  <Step title="Ubicar el botón de acceso">
+    Haz clic en el ícono de engranaje flotante (⚙️) ubicado en la esquina inferior derecha de la página.
+  </Step>
+  
+  <Step title="Ingresar credenciales">
+    Introduce la contraseña de administrador en el modal que aparece.
+  </Step>
+  
+  <Step title="Iniciar sesión">
+    Presiona **Enter** o haz clic en el botón de inicio de sesión.
+  </Step>
+</Steps>
+
+## Roles de Usuario
+
+### Admin
+
+Los usuarios con rol de **Admin** tienen acceso a:
+
+- Actualización masiva de precios
+- Edición individual de precios
+- Visualización de precios actuales
+- Acceso al histórico de cambios
+- Exportación de configuración
+- Restauración de precios originales
+
+### SuperAdmin
+
+Los usuarios con rol de **SuperAdmin** tienen acceso a todas las funcionalidades de Admin, más:
+
+- Gestión de usuarios
+- Visualización de logs de auditoría completos
+- Estadísticas de uso del sistema
+- Configuraciones avanzadas
+
+<Info>
+  La contraseña de SuperAdmin se configura en `APP_CONFIG.SUPER_ADMIN_PASSWORD` (por defecto: `superadmin2024`).
+</Info>
+
+## Secciones del Panel
+
+<CardGroup cols={2}>
+  <Card title="Actualización Masiva" icon="percentage" href="/admin/bulk-updates">
+    Aplica aumentos o descuentos porcentuales a múltiples planes simultáneamente.
+  </Card>
+  
+  <Card title="Gestión de Precios" icon="dollar-sign" href="/admin/price-management">
+    Edita precios individuales, visualiza el histórico y restaura valores originales.
+  </Card>
+  
+  <Card title="Auditoría" icon="clipboard-list" href="/admin/audit-system">
+    Revisa todos los cambios realizados y la actividad de usuarios.
+  </Card>
+  
+  <Card title="Exportar Datos" icon="download">
+    Descarga respaldos de la configuración actual en formato JSON.
+  </Card>
+</CardGroup>
+
+## Navegación
+
+### Volver a la Página Principal
+
+Desde el panel administrativo, puedes hacer clic en **"Volver al Cotizador"** para regresar a la interfaz de usuario principal sin cerrar sesión.
+
+### Cerrar Sesión
+
+Para cerrar sesión de forma segura:
+
+1. Haz clic en tu nombre de usuario en la esquina superior derecha
+2. Selecciona **"Cerrar Sesión"** en el menú desplegable
+
+## Persistencia de Datos
+
+<Info>
+  Todos los cambios realizados en el panel administrativo se almacenan en el navegador usando `localStorage`.
+</Info>
+
+### Características de Almacenamiento
+
+- **Persistencia entre sesiones**: Los precios modificados se mantienen aunque cierres el navegador
+- **Funcionamiento offline**: No requiere conexión a internet para guardar cambios
+- **Histórico limitado**: Se mantienen los últimos 50 cambios para optimizar el rendimiento
+
+### Respaldos Recomendados
+
+<Warning>
+  Siempre exporta la configuración actual antes de realizar cambios importantes.
+</Warning>
+
+1. **Antes de cambios masivos**: Exporta como respaldo de seguridad
+2. **Periodicidad regular**: Exporta semanalmente o mensualmente
+3. **Después de ajustes importantes**: Guarda una copia de los nuevos precios
+
+## Consideraciones de Seguridad
+
+### Acceso Restringido
+
+- Solo personal autorizado debe conocer la contraseña de administrador
+- Cambia la contraseña periódicamente
+- No compartas credenciales por canales inseguros
+
+### Auditoría
+
+Todas las acciones administrativas quedan registradas:
+
+- Fecha y hora del cambio
+- Usuario que realizó la acción
+- Tipo de operación (aumento, descuento, edición individual)
+- Cantidad de planes afectados
+
+<Card title="Sistema de Auditoría" icon="shield-check" href="/admin/audit-system">
+  Aprende más sobre el sistema de registro y auditoría.
+</Card>
+
+## Resolución de Problemas
+
+### No puedo acceder al panel
+
+- Verifica que la contraseña sea correcta: `ospadep2024`
+- Asegúrate de hacer clic en el botón de engranaje flotante
+- Limpia la caché del navegador si persiste el problema
+
+### Los cambios no se aplican
+
+- Confirma que hayas hecho clic en **"Guardar Cambios"** o **"Aplicar"**
+- Verifica que los valores ingresados sean válidos (números positivos)
+- Recarga la página y verifica si los cambios se guardaron
+
+### Quiero deshacer cambios
+
+- Usa **"Restaurar Precios Originales"** para volver al estado inicial
+- O modifica manualmente los precios en **"Edición Individual"**
+- Si tienes un respaldo exportado, puedes importarlo nuevamente
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Gestión de Precios" icon="dollar-sign" href="/admin/price-management">
+    Aprende a editar precios individuales y ver el histórico.
+  </Card>
+  
+  <Card title="Actualizaciones Masivas" icon="arrows-rotate" href="/admin/bulk-updates">
+    Descubre cómo aplicar cambios porcentuales a múltiples planes.
+  </Card>
+</CardGroup>

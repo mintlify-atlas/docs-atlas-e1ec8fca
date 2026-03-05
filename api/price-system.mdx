@@ -1,0 +1,413 @@
+---
+title: 'Price Calculation System'
+description: 'Price calculation functions and mass update operations'
+---
+
+## Overview
+
+The price calculation system provides functions for computing healthcare plan prices based on family composition, age groups, and provider-specific rules.
+
+---
+
+## External Price Loading
+
+### cargarPreciosExternos()
+
+Loads pricing data from external JSON file.
+
+```javascript
+await cargarPreciosExternos()
+```
+
+<ResponseField name="success" type="boolean">
+  `true` if prices loaded successfully, `false` if fallback to internal prices
+</ResponseField>
+
+**Example:**
+
+```javascript
+const loaded = await cargarPreciosExternos();
+if (loaded) {
+  console.log('External prices loaded');
+} else {
+  console.log('Using fallback internal prices');
+}
+```
+
+**Behavior:**
+- Fetches from `precios-data.json`
+- Updates global `prestadoresData` object
+- Sets `preciosExternosDisponibles` flag
+- Falls back to internal prices on error
+
+---
+
+## Price Calculation Functions
+
+### calcularPrecioFinalOMINT()
+
+Calculates total price for OMINT plans with role-based pricing.
+
+```javascript
+calcularPrecioFinalOMINT(planOMINT, composicionFamiliar, edadTitular, edadPareja)
+```
+
+<ParamField path="planOMINT" type="object" required>
+  OMINT plan object with `preciosPorEdad` structure
+</ParamField>
+
+<ParamField path="composicionFamiliar" type="object" required>
+  Family composition:
+  - `tienePareja`: Boolean
+  - `menores`: Array of minor ages (< 21)
+  - `mayores`: Array of adult child ages (21+)
+</ParamField>
+
+<ParamField path="edadTitular" type="number" required>
+  Primary holder's age
+</ParamField>
+
+<ParamField path="edadPareja" type="number">
+  Spouse/partner age (optional)
+</ParamField>
+
+<ResponseField name="precioTotal" type="number">
+  Total monthly price (rounded to integer)
+</ResponseField>
+
+**Age Groups:**
+- `0-25`: Ages 0-25
+- `26-35`: Ages 26-35
+- `36-54`: Ages 36-54
+- `55-59`: Ages 55-59
+- `60+`: Ages 60 and above
+
+**Pricing Roles:**
+- `adultoConyugue`: Primary holder and spouse
+- `hijo1Menor`: First child under 25
+- `hijo2MasMenores`: Additional children under 25
+
+**Example:**
+
+```javascript
+const plan = prestadoresData.omint.planes.plan6500;
+const familia = {
+  tienePareja: true,
+  menores: [5, 8],
+  mayores: []
+};
+
+const precio = calcularPrecioFinalOMINT(plan, familia, 35, 33);
+console.log('Precio total OMINT:', precio); // e.g., 450000
+```
+
+---
+
+### calcularPrecioFinalSwiss()
+
+Calculates total price for Swiss Medical plans (all members as adults).
+
+```javascript
+calcularPrecioFinalSwiss(planSwiss, composicionFamiliar, edadTitular, edadPareja)
+```
+
+<ParamField path="planSwiss" type="object" required>
+  Swiss Medical plan with `preciosPorEdad`
+</ParamField>
+
+<ParamField path="composicionFamiliar" type="object" required>
+  Family composition object
+</ParamField>
+
+<ParamField path="edadTitular" type="number" required>
+  Primary holder's age
+</ParamField>
+
+<ParamField path="edadPareja" type="number">
+  Spouse age (optional)
+</ParamField>
+
+<ResponseField name="precioTotal" type="number">
+  Total price with all members charged as adults
+</ResponseField>
+
+**Age Groups:**
+- `≤65`: Ages 65 and under
+- `>65`: Ages over 65
+
+**Pricing Model:**
+- No discounts for children
+- All family members charged at full adult rate
+- Age-based pricing only
+
+**Example:**
+
+```javascript
+const plan = prestadoresData.swissMedical.planes.po64;
+const familia = {
+  tienePareja: true,
+  menores: [10, 12],
+  mayores: []
+};
+
+const precio = calcularPrecioFinalSwiss(plan, familia, 40, 38);
+console.log('Precio Swiss Medical:', precio);
+```
+
+---
+
+### calcularPrecioFinalMedife()
+
+Calculates total price for MEDIFE plans with individual/couple/family structure.
+
+```javascript
+calcularPrecioFinalMedife(planMedife, composicionFamiliar, edadTitular, edadPareja)
+```
+
+<ParamField path="planMedife" type="object" required>
+  MEDIFE plan with `precios` structure
+</ParamField>
+
+<ParamField path="composicionFamiliar" type="object" required>
+  Family composition
+</ParamField>
+
+<ParamField path="edadTitular" type="number" required>
+  Primary holder's age
+</ParamField>
+
+<ParamField path="edadPareja" type="number">
+  Spouse age (optional)
+</ParamField>
+
+<ResponseField name="precioTotal" type="number">
+  Total price using MEDIFE pricing tiers
+</ResponseField>
+
+**Age Brackets:**
+- `0-29`: Ages 0-29
+- `30-39`: Ages 30-39
+- `40-49`: Ages 40-49
+- `50-59`: Ages 50-59
+- `60+`: Ages 60 and above
+
+**Pricing Categories:**
+- `individual`: Single person
+- `conyuge`: Spouse rate
+- `matrimonio`: Couple rate (pre-calculated)
+- `hijos.primerHijo`: First child
+- `hijos.segundoHijo`: Second child
+- `hijos.hijoAdulto`: Adult child (21-29)
+- `hijos.familiarCargo`: Dependent family member
+
+**Example:**
+
+```javascript
+const plan = prestadoresData.medife.planes.plata;
+const familia = {
+  tienePareja: true,
+  menores: [6],
+  mayores: [22]
+};
+
+const precio = calcularPrecioFinalMedife(plan, familia, 42, 40);
+console.log('Precio MEDIFE:', precio);
+```
+
+---
+
+### calcularPrecioFinalOspadep()
+
+Calculates price for OSPADEP SALUD plans with fine-grained age brackets.
+
+```javascript
+calcularPrecioFinalOspadep(planOspadep, composicionFamiliar, edadTitular, edadPareja)
+```
+
+<ParamField path="planOspadep" type="object" required>
+  OSPADEP SALUD plan with `preciosPorEdad`
+</ParamField>
+
+<ParamField path="composicionFamiliar" type="object" required>
+  Family composition
+</ParamField>
+
+<ParamField path="edadTitular" type="number" required>
+  Primary holder's age
+</ParamField>
+
+<ParamField path="edadPareja" type="number">
+  Spouse age (optional)
+</ParamField>
+
+<ResponseField name="precioTotal" type="number">
+  Total price with OSPADEP age brackets
+</ResponseField>
+
+**Age Groups:**
+- `18-27`, `28-35`, `36-40`, `41-45`, `46-50`, `51-55`, `56-64`, `65+`
+
+**Pricing Roles:**
+- `adultoConyugue`: Adult holder/spouse
+- `hijoMenor`: Minor child
+
+---
+
+### calcularPrecioUnificado()
+
+Unified price calculation function that routes to provider-specific calculators.
+
+```javascript
+calcularPrecioUnificado(prestadorKey, plan, composicionFamiliar, edadTitular, edadPareja)
+```
+
+<ParamField path="prestadorKey" type="string" required>
+  Provider key: `omint`, `swissMedical`, `medife`, `activaSalud`, `ospadepSalud`, etc.
+</ParamField>
+
+<ParamField path="plan" type="object" required>
+  Plan object
+</ParamField>
+
+<ParamField path="composicionFamiliar" type="object" required>
+  Family composition
+</ParamField>
+
+<ParamField path="edadTitular" type="number" required>
+  Primary holder age
+</ParamField>
+
+<ParamField path="edadPareja" type="number">
+  Spouse age
+</ParamField>
+
+<ResponseField name="precioTotal" type="number">
+  Calculated total price
+</ResponseField>
+
+**Example:**
+
+```javascript
+const precio = calcularPrecioUnificado(
+  'omint',
+  plan,
+  { tienePareja: true, menores: [5], mayores: [] },
+  35,
+  33
+);
+```
+
+---
+
+## Mass Price Updates
+
+### aplicarAumentosExternos()
+
+Applies percentage increases to all providers.
+
+```javascript
+await aplicarAumentosExternos()
+```
+
+Opens admin panel for mass price adjustments.
+
+---
+
+### aplicarAumentoAPrestador()
+
+Applies percentage increase to a specific provider.
+
+```javascript
+aplicarAumentoAPrestador(prestador, porcentaje)
+```
+
+<ParamField path="prestador" type="string" required>
+  Provider key (e.g., `omint`, `medife`)
+</ParamField>
+
+<ParamField path="porcentaje" type="number" required>
+  Increase percentage (e.g., 2.5 for 2.5%)
+</ParamField>
+
+**Example:**
+
+```javascript
+aplicarAumentoAPrestador('omint', 2.5);
+console.log('OMINT prices increased by 2.5%');
+```
+
+---
+
+## History
+
+### obtenerHistorialCambios()
+
+Retrieves price change history from data file.
+
+```javascript
+const historial = obtenerHistorialCambios()
+```
+
+<ResponseField name="historial" type="array">
+  Array of change records:
+  - `fecha`: Date string
+  - `descripcion`: Description of changes
+  - `autor`: User who made changes
+</ResponseField>
+
+**Example:**
+
+```javascript
+const historial = prestadoresData.historialCambios || [];
+historial.forEach(cambio => {
+  console.log(`${cambio.fecha}: ${cambio.descripcion}`);
+});
+```
+
+---
+
+## Helper Functions
+
+### determinarGrupoEtario()
+
+Determines age group for OMINT pricing.
+
+```javascript
+determinarGrupoEtario(edad)
+```
+
+<ParamField path="edad" type="number" required>
+  Age in years
+</ParamField>
+
+<ResponseField name="grupo" type="string">
+  Age group: `0-25`, `26-35`, `36-54`, `55-59`, or `60+`
+</ResponseField>
+
+---
+
+### determinarGrupoEtarioSwiss()
+
+Determines age group for Swiss Medical.
+
+```javascript
+determinarGrupoEtarioSwiss(edad)
+```
+
+<ResponseField name="grupo" type="string">
+  `≤65` or `>65`
+</ResponseField>
+
+---
+
+### determinarGrupoEtarioMedife()
+
+Determines age group for MEDIFE.
+
+```javascript
+determinarGrupoEtarioMedife(edad)
+```
+
+<ResponseField name="grupo" type="string">
+  `0-29`, `30-39`, `40-49`, `50-59`, or `60+`
+</ResponseField>

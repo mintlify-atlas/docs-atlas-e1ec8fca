@@ -1,0 +1,436 @@
+---
+title: 'User Roles'
+description: 'Role definitions, permissions, and hierarchy'
+---
+
+## Overview
+
+OSPADEP uses a three-tier role system to control access to features and operations.
+
+---
+
+## Role Definitions
+
+### Super Admin
+
+**Role Key:** `super_admin`
+
+**Access via:**
+```javascript
+APP_CONFIG.USER_ROLES.SUPER_ADMIN
+```
+
+**Permissions:**
+```javascript
+permissions: ['all']
+```
+
+**Capabilities:**
+- All system operations
+- User management (create, update, delete all users)
+- Price management (update all providers)
+- System configuration
+- Access to audit logs
+- Data export and backup
+- Mass price updates
+- Historical data access
+
+**Default Account:**
+- Username: `ospadep_admin_2024`
+- Password: Set in `CONFIG.SUPER_ADMIN_PASSWORD`
+- Cannot be deleted
+
+**Example:**
+
+```javascript
+if (user.role === APP_CONFIG.USER_ROLES.SUPER_ADMIN) {
+  // Grant full access
+  showAdminPanel();
+  enablePriceEditing();
+  showAuditLogs();
+}
+```
+
+---
+
+### Admin
+
+**Role Key:** `admin`
+
+**Access via:**
+```javascript
+APP_CONFIG.USER_ROLES.ADMIN
+```
+
+**Permissions:**
+```javascript
+permissions: [
+  'price_update',
+  'plan_management',
+  'view_reports'
+]
+```
+
+**Capabilities:**
+- Update plan prices
+- Manage healthcare plans
+- Generate and view reports
+- Create quotes
+- View audit logs (read-only)
+- Manage regular users (not other admins)
+- Export data
+
+**Restrictions:**
+- Cannot manage other admin users
+- Cannot manage super admin
+- Cannot modify system configuration
+- Cannot access backup/restore functions
+
+**Authentication:**
+```javascript
+// Login as admin
+await userManager.login('ospadep2024', 'admin_username');
+```
+
+**Example:**
+
+```javascript
+if (user.role === APP_CONFIG.USER_ROLES.ADMIN) {
+  // Admin access
+  showPriceEditor();
+  enablePlanManagement();
+  showReports();
+  
+  // Check specific permission
+  if (user.permissions.includes('price_update')) {
+    enablePriceUpdateButton();
+  }
+}
+```
+
+---
+
+### User
+
+**Role Key:** `user`
+
+**Access via:**
+```javascript
+APP_CONFIG.USER_ROLES.USER
+```
+
+**Permissions:**
+```javascript
+permissions: [
+  'view_plans',
+  'generate_quotes'
+]
+```
+
+**Capabilities:**
+- View healthcare plans
+- Generate quotes for clients
+- View plan details and features
+- Compare plans
+- Basic reporting
+
+**Restrictions:**
+- Cannot modify prices
+- Cannot manage users
+- Cannot access admin panel
+- Cannot view audit logs
+- Cannot export sensitive data
+- Cannot configure system
+
+**Example:**
+
+```javascript
+if (user.role === APP_CONFIG.USER_ROLES.USER) {
+  // Regular user access
+  showPlanCatalog();
+  enableQuoteGeneration();
+  
+  // Hide admin features
+  hideAdminPanel();
+  disablePriceEditing();
+}
+```
+
+---
+
+## Role Hierarchy
+
+```
+Super Admin (Level 3)
+    |
+    ├─ All permissions
+    ├─ Manage all users
+    └─ System configuration
+         |
+         Admin (Level 2)
+             |
+             ├─ Price management
+             ├─ Plan management
+             ├─ Manage regular users
+             └─ View reports
+                  |
+                  User (Level 1)
+                      |
+                      ├─ View plans
+                      └─ Generate quotes
+```
+
+---
+
+## Permission Checking
+
+### Check User Role
+
+```javascript
+const userManager = new UserManager();
+
+// Check if logged in
+if (!userManager.isLoggedIn()) {
+  redirectToLogin();
+}
+
+// Check super admin
+if (userManager.isSuperAdmin()) {
+  console.log('Super admin access granted');
+}
+
+// Check admin (includes super admin)
+if (userManager.isAdmin()) {
+  console.log('Admin or super admin access');
+}
+
+// Check specific role
+const user = userManager.getCurrentUser();
+if (user.role === APP_CONFIG.USER_ROLES.USER) {
+  console.log('Regular user access');
+}
+```
+
+---
+
+### Check Specific Permission
+
+```javascript
+function hasPermission(user, permission) {
+  // Super admin has all permissions
+  if (user.permissions.includes('all')) {
+    return true;
+  }
+  
+  // Check specific permission
+  return user.permissions.includes(permission);
+}
+
+// Usage
+if (hasPermission(currentUser, 'price_update')) {
+  showPriceUpdateButton();
+}
+
+if (hasPermission(currentUser, 'plan_management')) {
+  enablePlanEditor();
+}
+```
+
+---
+
+## User Management by Role
+
+### Who Can Manage Whom
+
+```javascript
+function canManageUser(currentUser, targetUser) {
+  // Super admin can manage everyone
+  if (currentUser.role === 'super_admin') {
+    return true;
+  }
+  
+  // Admin can manage regular users only
+  if (currentUser.role === 'admin' && targetUser.role === 'user') {
+    return true;
+  }
+  
+  // Users cannot manage anyone
+  return false;
+}
+```
+
+**Management Matrix:**
+
+| Current Role  | Can Manage Super Admin | Can Manage Admin | Can Manage User |
+|---------------|------------------------|------------------|------------------|
+| Super Admin   | ✓                      | ✓                | ✓                |
+| Admin         | ✗                      | ✗                | ✓                |
+| User          | ✗                      | ✗                | ✗                |
+
+---
+
+## Role-Based UI Elements
+
+```javascript
+function setupRoleBasedUI(user) {
+  // Common elements for all users
+  showQuoteGenerator();
+  showPlanCatalog();
+  
+  // Admin and super admin elements
+  if (user.role === 'admin' || user.role === 'super_admin') {
+    showPriceEditor();
+    showReportsPanel();
+    showUserManagement();
+  }
+  
+  // Super admin only elements
+  if (user.role === 'super_admin') {
+    showSystemConfig();
+    showAuditLogs();
+    showBackupRestore();
+    enableAdminManagement();
+  }
+}
+```
+
+---
+
+## Creating Users with Roles
+
+```javascript
+const auth = new AuthenticationSystem();
+
+// Create super admin (only by existing super admin)
+if (auth.currentSession.role === 'super_admin') {
+  const newSuperAdmin = auth.createUser({
+    username: 'new_super_admin',
+    password: 'SecurePassword123!',
+    role: 'super_admin',
+    name: 'New Super Admin',
+    email: 'newadmin@ospadep.com'
+  });
+}
+
+// Create admin
+const newAdmin = auth.createUser({
+  username: 'admin_john',
+  password: 'AdminPass456',
+  role: 'admin',
+  name: 'John Admin',
+  email: 'john@ospadep.com'
+});
+
+// Create regular user
+const newUser = auth.createUser({
+  username: 'user_jane',
+  password: 'UserPass789',
+  role: 'user',
+  name: 'Jane User',
+  email: 'jane@ospadep.com'
+});
+```
+
+---
+
+## Role-Based Audit Logging
+
+```javascript
+function logActionByRole(userManager, action, details) {
+  const user = userManager.getCurrentUser();
+  
+  // Log with role information
+  userManager.logActivity(action, {
+    ...details,
+    userRole: user.role,
+    permissions: user.permissions
+  });
+  
+  // Additional logging for sensitive actions
+  if (action === 'PRICE_UPDATE' || action === 'USER_CREATED') {
+    console.log(`[AUDIT] ${user.role} performed ${action}`);
+  }
+}
+
+// Usage
+logActionByRole(userManager, 'PRICE_UPDATE', {
+  prestador: 'OMINT',
+  increase: 2.5
+});
+```
+
+---
+
+## Default Permissions by Role
+
+```javascript
+function getDefaultPermissions(role) {
+  switch (role) {
+    case 'super_admin':
+      return ['all'];
+      
+    case 'admin':
+      return [
+        'price_update',
+        'plan_management',
+        'view_reports',
+        'manage_users',
+        'view_audit_logs'
+      ];
+      
+    case 'user':
+      return [
+        'view_plans',
+        'generate_quotes',
+        'view_basic_reports'
+      ];
+      
+    default:
+      return ['view_plans'];
+  }
+}
+```
+
+---
+
+## Complete Role Example
+
+```javascript
+// Initialize systems
+const auth = new AuthenticationSystem();
+const userManager = new UserManager();
+
+// Login
+try {
+  const result = await userManager.login('ospadep2024', 'admin_user');
+  const user = result.user;
+  
+  // Check role and permissions
+  console.log('Role:', user.role);
+  console.log('Permissions:', user.permissions);
+  
+  // Role-based logic
+  if (userManager.isSuperAdmin()) {
+    console.log('Full system access granted');
+    setupSuperAdminUI();
+  } else if (userManager.isAdmin()) {
+    console.log('Admin access granted');
+    setupAdminUI();
+  } else {
+    console.log('User access granted');
+    setupUserUI();
+  }
+  
+  // Permission-specific features
+  if (user.permissions.includes('price_update')) {
+    enablePriceManagement();
+  }
+  
+  if (user.permissions.includes('manage_users')) {
+    showUserManagementPanel();
+  }
+  
+} catch (error) {
+  console.error('Login failed:', error.message);
+}
+```

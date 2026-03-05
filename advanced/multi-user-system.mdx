@@ -1,0 +1,282 @@
+---
+title: Multi-User System
+description: User roles, management, and concurrent user support in Cotizador Online OSPADEP
+icon: 'users'
+---
+
+## Overview
+
+Cotizador Online OSPADEP supports multiple concurrent users with role-based access control. The system provides two distinct user roles with different permission levels and capabilities.
+
+## User Roles
+
+### SuperAdmin
+
+The SuperAdmin role has complete system access and administrative privileges.
+
+**Capabilities:**
+- Full access to all system features
+- User management (create, update, delete users)
+- Price management with bulk operations
+- Access to audit logs and analytics
+- System configuration
+- Export functionality
+
+**Default Credentials:**
+```javascript
+username: 'ospadep_admin_2024'
+password: 'OSPADEP_SecureAdmin_2024!'
+role: 'super_admin'
+permissions: ['all']
+```
+
+<Note>
+  The SuperAdmin user is created automatically on system initialization and cannot be deleted.
+</Note>
+
+### Admin
+
+The Admin role provides elevated access for managing plans and prices.
+
+**Capabilities:**
+- Price updates and plan management
+- Generate quotations
+- View reports
+- Limited user management (can only manage regular users)
+
+**Default Password:**
+```javascript
+password: 'ospadep2024'
+role: 'admin'
+permissions: ['price_update', 'plan_management', 'view_reports']
+```
+
+### Regular User
+
+**Capabilities:**
+- View plans
+- Generate quotations
+- View personal activity
+
+**Permissions:**
+```javascript
+role: 'user'
+permissions: ['view_plans', 'generate_quotes']
+```
+
+## User Management
+
+### Creating Users
+
+SuperAdmin and Admin users can create new users programmatically:
+
+```javascript
+const AuthSystem = window.AuthSystem;
+
+// Create a new user
+try {
+  const newUser = AuthSystem.createUser({
+    username: 'john_doe',
+    password: 'SecurePass123!',
+    role: 'user',
+    name: 'John Doe',
+    email: 'john@example.com'
+  });
+  
+  console.log('User created:', newUser);
+} catch (error) {
+  console.error('Error creating user:', error.message);
+}
+```
+
+**Validation Rules:**
+- All fields (username, password, role, name) are required
+- Username must be unique
+- Password must be at least 6 characters
+- Email is optional
+
+### Updating Users
+
+Modify existing user information:
+
+```javascript
+// Update user details
+AuthSystem.updateUser('john_doe', {
+  name: 'John Updated',
+  email: 'newemail@example.com',
+  isActive: true
+});
+```
+
+<Warning>
+  Users can only be modified by administrators with appropriate permissions. SuperAdmin can manage all users, while Admin can only manage regular users.
+</Warning>
+
+### Deleting Users
+
+Remove users from the system:
+
+```javascript
+// Delete a user
+try {
+  AuthSystem.deleteUser('john_doe');
+  console.log('User deleted successfully');
+} catch (error) {
+  console.error('Cannot delete user:', error.message);
+}
+```
+
+**Restrictions:**
+- Cannot delete the SuperAdmin user
+- Admins can only delete regular users
+- SuperAdmin required to delete Admin users
+
+## Permission System
+
+### Default Permissions by Role
+
+The system automatically assigns permissions based on user roles:
+
+```javascript
+function getDefaultPermissions(role) {
+  switch (role) {
+    case 'super_admin':
+      return ['all'];
+    case 'admin':
+      return ['price_update', 'plan_management', 'view_reports'];
+    case 'user':
+      return ['view_plans', 'generate_quotes'];
+    default:
+      return ['view_plans'];
+  }
+}
+```
+
+### Checking Permissions
+
+Verify user permissions before executing actions:
+
+```javascript
+// Check if user has specific permission
+if (AuthSystem.hasPermission('price_update')) {
+  // Allow price update
+  updatePrices();
+} else {
+  alert('You do not have permission to update prices');
+}
+
+// Check user role
+if (AuthSystem.isSuperAdmin()) {
+  // Show SuperAdmin panel
+  showAdminPanel();
+}
+
+if (AuthSystem.isAdmin()) {
+  // Show admin features
+  showAdminFeatures();
+}
+```
+
+## Concurrent User Support
+
+### Session Management
+
+The system supports multiple concurrent users through localStorage-based session management:
+
+```javascript
+// User data structure
+{
+  id: 'ospadep_admin_2024',
+  username: 'ospadep_admin_2024',
+  role: 'super_admin',
+  name: 'Administrador OSPADEP',
+  email: 'admin@ospadep.com',
+  createdAt: '2026-01-16T10:30:00.000Z',
+  lastLogin: '2026-03-05T14:25:00.000Z',
+  isActive: true,
+  permissions: ['all']
+}
+```
+
+### Getting Current User
+
+Retrieve information about the logged-in user:
+
+```javascript
+// Get current user
+const currentUser = AuthSystem.getCurrentUser();
+
+if (currentUser) {
+  console.log('Logged in as:', currentUser.name);
+  console.log('Role:', currentUser.role);
+  console.log('Permissions:', currentUser.permissions);
+}
+
+// Check if logged in
+if (AuthSystem.isLoggedIn()) {
+  // User is authenticated
+  showDashboard();
+} else {
+  // Redirect to login
+  showLoginScreen();
+}
+```
+
+### User Activity Tracking
+
+All user actions are automatically logged:
+
+```javascript
+// Get all users (SuperAdmin only)
+const allUsers = AuthSystem.getAllUsers();
+
+// View user statistics
+const stats = AuthSystem.getUserStats();
+console.log('Total sessions:', stats.totalSessions);
+console.log('Total actions:', stats.totalActions);
+console.log('Today activity:', stats.todayActivity);
+console.log('User activity:', stats.userActivity);
+```
+
+## User Storage
+
+User data is persisted in localStorage:
+
+**Key:** `ospadep_users`
+
+**Structure:**
+```json
+{
+  "ospadep_admin_2024": {
+    "id": "ospadep_admin_2024",
+    "username": "ospadep_admin_2024",
+    "password": "OSPADEP_SecureAdmin_2024!",
+    "role": "super_admin",
+    "name": "Administrador OSPADEP",
+    "email": "admin@ospadep.com",
+    "createdAt": "2026-01-16T10:30:00.000Z",
+    "lastLogin": "2026-03-05T14:25:00.000Z",
+    "isActive": true,
+    "permissions": ["all"],
+    "createdBy": "system"
+  }
+}
+```
+
+<Warning>
+  User passwords are currently stored in plain text in localStorage. In a production environment, passwords should be hashed using bcrypt or similar algorithms and validated server-side.
+</Warning>
+
+## Best Practices
+
+1. **Regular Review**: Periodically review user accounts and remove inactive users
+2. **Strong Passwords**: Enforce strong password requirements (minimum 8 characters, mix of uppercase, lowercase, numbers, and symbols)
+3. **Least Privilege**: Assign users the minimum permissions needed for their role
+4. **Activity Monitoring**: Regularly review the audit log for suspicious activity
+5. **Session Security**: Implement the authentication system's built-in session timeout features
+
+## Related Topics
+
+- [Authentication](/advanced/authentication) - Login, logout, and session management
+- [Real-Time Sync](/advanced/real-time-sync) - Multi-user synchronization
+- [Data Management](/advanced/data-management) - User data storage and backup

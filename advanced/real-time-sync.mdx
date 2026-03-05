@@ -1,0 +1,526 @@
+---
+title: Real-Time Sync
+description: Synchronization capabilities, auto-sync configuration, and conflict resolution
+icon: 'arrows-rotate'
+---
+
+## Overview
+
+Cotizador Online OSPADEP includes synchronization capabilities to support multi-user environments. The current implementation provides local synchronization with plans for real-time server synchronization.
+
+## Current Implementation
+
+### Local Synchronization
+
+The system currently uses localStorage-based synchronization:
+
+```javascript
+class UserManager {
+  constructor() {
+    this.syncInterval = null;
+    
+    // Start auto-sync if enabled
+    if (APP_CONFIG.AUTO_SYNC) {
+      this.startAutoSync();
+    }
+  }
+}
+```
+
+### Auto-Sync Configuration
+
+From `config.js`:
+
+```javascript
+const CONFIG = {
+  SYNC_INTERVAL: 5000, // 5 seconds
+  AUTO_SYNC: true,
+  
+  // Future backend endpoints
+  API_BASE_URL: '',
+  SYNC_ENDPOINT: '/api/sync'
+};
+```
+
+<Note>
+  Auto-sync is currently enabled by default and checks for changes every 5 seconds.
+</Note>
+
+## Sync Manager
+
+### Starting Auto-Sync
+
+Automatic synchronization runs at configured intervals:
+
+```javascript
+startAutoSync() {
+  if (this.syncInterval) {
+    clearInterval(this.syncInterval);
+  }
+  
+  this.syncInterval = setInterval(() => {
+    this.syncData();
+  }, APP_CONFIG.SYNC_INTERVAL);
+}
+```
+
+### Stopping Auto-Sync
+
+Stop synchronization when user logs out:
+
+```javascript
+stopAutoSync() {
+  if (this.syncInterval) {
+    clearInterval(this.syncInterval);
+    this.syncInterval = null;
+  }
+}
+```
+
+### Sync Data Method
+
+Current local sync implementation:
+
+```javascript
+async syncData() {
+  try {
+    // Track last sync timestamp
+    const lastSync = localStorage.getItem('ospadep_last_sync');
+    
+    // Get current data
+    const currentData = {
+      prices: JSON.parse(localStorage.getItem('ospadep_custom_prices') || '{}'),
+      plans: JSON.parse(localStorage.getItem('ospadep_custom_plans') || '{}'),
+      timestamp: Date.now()
+    };
+    
+    // Future: sync with server
+    // await this.syncWithServer(currentData);
+    
+    // Update sync timestamp
+    localStorage.setItem('ospadep_last_sync', 
+      currentData.timestamp.toString());
+    
+  } catch (error) {
+    console.error('Error en sincronización:', error);
+  }
+}
+```
+
+## Future: Server Synchronization
+
+### Server Sync Method
+
+Planned implementation for backend sync:
+
+```javascript
+async syncWithServer(data) {
+  if (APP_CONFIG.API_BASE_URL && APP_CONFIG.SYNC_ENDPOINT) {
+    try {
+      const response = await fetch(
+        APP_CONFIG.API_BASE_URL + APP_CONFIG.SYNC_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getApiToken()}`
+        },
+        body: JSON.stringify(data)
+      });
+      
+      if (response.ok) {
+        const serverData = await response.json();
+        return serverData;
+      }
+    } catch (error) {
+      console.error('Error sincronizando con servidor:', error);
+    }
+  }
+  return null;
+}
+```
+
+## Sync Options
+
+The `SYNC_IMPLEMENTATION_GUIDE.md` outlines three implementation approaches:
+
+### Option 1: Firebase (Recommended)
+
+**Advantages:**
+- Automatic real-time synchronization
+- No custom server required
+- Scalable and reliable
+- Quick implementation
+
+**Implementation:**
+
+```javascript
+// Configure Firebase
+const firebaseConfig = {
+  apiKey: "your-api-key",
+  authDomain: "ospadep-cotizador.firebaseapp.com",
+  projectId: "ospadep-cotizador"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Listen for real-time changes
+function syncPricesWithFirebase() {
+  db.collection('prices').doc('current')
+    .onSnapshot((doc) => {
+      if (doc.exists && doc.data().updatedBy !== getCurrentUserId()) {
+        // Update local prices
+        updateLocalPrices(doc.data().prices);
+        showSyncNotification('Precios actualizados por otro usuario');
+      }
+    });
+}
+
+// Send changes to Firebase
+function updatePricesInFirebase(newPrices) {
+  db.collection('prices').doc('current').set({
+    prices: newPrices,
+    updatedBy: getCurrentUserId(),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+```
+
+### Option 2: Custom Node.js Backend
+
+**Advantages:**
+- Complete data control
+- Full customization
+- No external dependencies
+
+**Implementation:**
+
+```javascript
+// Server: Node.js + Express + Socket.io
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: { origin: "*" }
+});
+
+let currentPrices = {};
+
+io.on('connection', (socket) => {
+  console.log('Usuario conectado:', socket.id);
+  
+  // Send current data on connect
+  socket.emit('current-data', {
+    prices: currentPrices
+  });
+  
+  // Listen for price updates
+  socket.on('price-update', (data) => {
+    currentPrices = data.prices;
+    
+    // Notify all other users
+    socket.broadcast.emit('price-changed', {
+      prices: currentPrices,
+      updatedBy: data.user,
+      action: data.action
+    });
+  });
+});
+
+server.listen(3000);
+```
+
+**Client Implementation:**
+
+```javascript
+// Connect to sync server
+const socket = io('http://localhost:3000');
+
+// Receive current data
+socket.on('current-data', (data) => {
+  console.log('Current prices:', data.prices);
+  updateLocalPrices(data.prices);
+});
+
+// Listen for changes from other users
+socket.on('price-changed', (data) => {
+  console.log('Prices updated by:', data.updatedBy);
+  updateLocalPrices(data.prices);
+  showSyncNotification(`Precios actualizados por ${data.updatedBy}`);
+});
+
+// Send price updates
+function broadcastPriceUpdate(newPrices, action) {
+  socket.emit('price-update', {
+    prices: newPrices,
+    user: getCurrentUserId(),
+    action: action
+  });
+}
+```
+
+### Option 3: Supabase
+
+**Advantages:**
+- Open source
+- PostgreSQL database
+- Real-time subscriptions
+- Built-in authentication
+
+**Implementation:**
+
+```javascript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://your-project.supabase.co';
+const supabaseKey = 'your-anon-key';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Listen for real-time changes
+supabase
+  .channel('prices-changes')
+  .on('postgres_changes', 
+    { event: 'UPDATE', schema: 'public', table: 'prices' },
+    (payload) => {
+      updateLocalPrices(payload.new.data);
+      showSyncNotification(
+        `Precios actualizados por ${payload.new.updated_by}`);
+    }
+  )
+  .subscribe();
+```
+
+## Conflict Resolution
+
+### Timestamp-Based Resolution
+
+Most recent change wins:
+
+```javascript
+function resolveConflict(localData, serverData) {
+  const localTimestamp = localData.timestamp;
+  const serverTimestamp = serverData.timestamp;
+  
+  if (serverTimestamp > localTimestamp) {
+    // Server data is newer
+    return {
+      data: serverData,
+      source: 'server',
+      resolved: true
+    };
+  } else {
+    // Local data is newer
+    return {
+      data: localData,
+      source: 'local',
+      resolved: true
+    };
+  }
+}
+```
+
+### User-Based Resolution
+
+Admin changes take precedence:
+
+```javascript
+function resolveConflictByRole(localChange, serverChange) {
+  const localUserRole = localChange.userRole;
+  const serverUserRole = serverChange.userRole;
+  
+  // SuperAdmin changes always win
+  if (localUserRole === 'super_admin') {
+    return localChange;
+  }
+  if (serverUserRole === 'super_admin') {
+    return serverChange;
+  }
+  
+  // Otherwise, most recent wins
+  return localChange.timestamp > serverChange.timestamp 
+    ? localChange 
+    : serverChange;
+}
+```
+
+### Merge Strategy
+
+Merge non-conflicting changes:
+
+```javascript
+function mergeChanges(local, server) {
+  const merged = { ...local };
+  
+  // Merge only if fields don't conflict
+  for (const [key, value] of Object.entries(server)) {
+    if (!merged[key] || merged[key] === value) {
+      merged[key] = value;
+    } else {
+      // Conflict detected - use timestamp to resolve
+      if (server.timestamp > local.timestamp) {
+        merged[key] = value;
+      }
+    }
+  }
+  
+  return merged;
+}
+```
+
+## Sync Notifications
+
+### Visual Notifications
+
+Show users when data is synchronized:
+
+```javascript
+function showSyncNotification(message) {
+  const notification = document.createElement('div');
+  notification.className = 'sync-notification';
+  notification.innerHTML = `
+    <i class="fas fa-sync-alt"></i>
+    ${message}
+  `;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
+```
+
+**CSS for notifications:**
+
+```css
+.sync-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+```
+
+## Integration Example
+
+### Integrating Sync with Price Updates
+
+```javascript
+function applyBulkIncrease() {
+  // ... existing code to update prices ...
+  
+  // Save changes locally
+  saveCustomPrices();
+  
+  // Sync with server if available
+  if (window.SyncManager) {
+    window.SyncManager.updatePrices(planesData, 'BULK_INCREASE', {
+      percentage: percentage,
+      category: category,
+      plansAffected: updatedPlans
+    });
+  }
+  
+  // Log activity
+  window.UserManager.logActivity('BULK_PRICE_UPDATE', {
+    percentage: percentage,
+    category: category
+  });
+}
+```
+
+## Sync Status Tracking
+
+### Check Sync Status
+
+```javascript
+function getSyncStatus() {
+  const lastSync = localStorage.getItem('ospadep_last_sync');
+  
+  if (!lastSync) {
+    return {
+      status: 'never',
+      lastSync: null
+    };
+  }
+  
+  const lastSyncDate = new Date(parseInt(lastSync));
+  const now = new Date();
+  const minutesAgo = Math.floor((now - lastSyncDate) / 1000 / 60);
+  
+  return {
+    status: 'synced',
+    lastSync: lastSyncDate,
+    minutesAgo: minutesAgo
+  };
+}
+```
+
+### Display Sync Status
+
+```javascript
+function displaySyncStatus() {
+  const status = getSyncStatus();
+  const statusElement = document.getElementById('sync-status');
+  
+  if (status.status === 'never') {
+    statusElement.textContent = 'Nunca sincronizado';
+  } else {
+    statusElement.textContent = 
+      `Última sincronización: hace ${status.minutesAgo} minutos`;
+  }
+}
+```
+
+## Best Practices
+
+1. **Conflict Prevention**: Use optimistic locking with version numbers
+2. **Offline Support**: Queue changes when offline and sync when connection restored
+3. **User Notifications**: Always inform users when their data is updated by others
+4. **Audit Trail**: Log all sync operations for troubleshooting
+5. **Error Handling**: Gracefully handle sync failures and retry automatically
+
+<Warning>
+  When implementing real-time sync with multiple concurrent users, always test conflict scenarios thoroughly to prevent data loss.
+</Warning>
+
+## Configuration
+
+Sync settings in `config.js`:
+
+```javascript
+const CONFIG = {
+  // Sync configuration
+  SYNC_INTERVAL: 5000, // 5 seconds
+  AUTO_SYNC: true,
+  
+  // Backend endpoints (for future use)
+  API_BASE_URL: '',
+  SYNC_ENDPOINT: '/api/sync',
+  
+  // Environment
+  ENVIRONMENT: 'development'
+};
+```
+
+## Related Topics
+
+- [Multi-User System](/advanced/multi-user-system) - Managing concurrent users
+- [Authentication](/advanced/authentication) - Session and token management
+- [Data Management](/advanced/data-management) - Data storage and persistence

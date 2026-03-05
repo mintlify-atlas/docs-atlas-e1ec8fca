@@ -1,0 +1,449 @@
+---
+title: Authentication
+description: Authentication flow, session handling, and security features
+icon: 'lock'
+---
+
+## Overview
+
+Cotizador Online OSPADEP implements a comprehensive authentication system with session management, activity tracking, and automatic timeout features.
+
+## Authentication System
+
+The authentication system is implemented in `auth-system.js` and provides the `AuthenticationSystem` class:
+
+```javascript
+class AuthenticationSystem {
+  constructor() {
+    this.users = this.loadUsers();
+    this.currentSession = null;
+    this.sessionTimeout = 8 * 60 * 60 * 1000; // 8 hours
+    this.initializeSystem();
+  }
+}
+
+// Global instance
+window.AuthSystem = new AuthenticationSystem();
+```
+
+## Login Process
+
+### Basic Login
+
+Authenticate users with username and password:
+
+```javascript
+const AuthSystem = window.AuthSystem;
+
+try {
+  const result = await AuthSystem.login('username', 'password');
+  
+  if (result.success) {
+    console.log('Login successful');
+    console.log('User:', result.user);
+    console.log('Session:', result.session);
+    
+    // Redirect to dashboard
+    window.location.href = '/dashboard';
+  }
+} catch (error) {
+  console.error('Login failed:', error.message);
+  alert(error.message);
+}
+```
+
+### Login Response
+
+Successful login returns:
+
+```javascript
+{
+  success: true,
+  session: {
+    sessionId: 'abc123xyz789',
+    userId: 'ospadep_admin_2024',
+    username: 'ospadep_admin_2024',
+    name: 'Administrador OSPADEP',
+    role: 'super_admin',
+    permissions: ['all'],
+    loginTime: '2026-03-05T14:25:00.000Z',
+    lastActivity: '2026-03-05T14:25:00.000Z',
+    expiresAt: '2026-03-05T22:25:00.000Z'
+  },
+  user: {
+    id: 'ospadep_admin_2024',
+    username: 'ospadep_admin_2024',
+    name: 'Administrador OSPADEP',
+    role: 'super_admin',
+    permissions: ['all']
+  }
+}
+```
+
+### Login Validation
+
+The system performs multiple validation checks:
+
+```javascript
+async login(username, password) {
+  // 1. Check if user exists
+  const user = this.users[username];
+  if (!user) {
+    throw new Error('Usuario no encontrado');
+  }
+
+  // 2. Check if user is active
+  if (!user.isActive) {
+    throw new Error('Usuario desactivado. Contacta al administrador');
+  }
+
+  // 3. Verify password
+  if (user.password !== password) {
+    this.logActivity('LOGIN_FAILED', {
+      username: username,
+      reason: 'invalid_password'
+    });
+    throw new Error('Contraseña incorrecta');
+  }
+
+  // 4. Create session
+  // ...
+}
+```
+
+<Warning>
+  Failed login attempts are logged in the audit system for security monitoring.
+</Warning>
+
+## Session Management
+
+### Session Duration
+
+Sessions are valid for **8 hours** by default:
+
+```javascript
+this.sessionTimeout = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+```
+
+### Session Structure
+
+Active sessions contain:
+
+```javascript
+{
+  sessionId: 'unique-session-id',
+  userId: 'user-id',
+  username: 'username',
+  name: 'Full Name',
+  role: 'super_admin',
+  permissions: ['all'],
+  loginTime: '2026-03-05T14:25:00.000Z',
+  lastActivity: '2026-03-05T14:30:00.000Z',
+  expiresAt: '2026-03-05T22:25:00.000Z'
+}
+```
+
+### Session Persistence
+
+Sessions are stored in localStorage:
+
+**Key:** `ospadep_active_session`
+
+```javascript
+// Save session
+saveSession() {
+  if (this.currentSession) {
+    localStorage.setItem('ospadep_active_session', 
+      JSON.stringify(this.currentSession));
+  }
+}
+
+// Load session on page load
+loadActiveSession() {
+  const saved = localStorage.getItem('ospadep_active_session');
+  if (saved) {
+    const session = JSON.parse(saved);
+    
+    // Verify session hasn't expired
+    if (this.isSessionValid(session)) {
+      this.currentSession = session;
+      this.updateActivity();
+    } else {
+      localStorage.removeItem('ospadep_active_session');
+    }
+  }
+}
+```
+
+### Session Validation
+
+Check if a session is still valid:
+
+```javascript
+isSessionValid(session = this.currentSession) {
+  if (!session) return false;
+  
+  const now = new Date();
+  const expiresAt = new Date(session.expiresAt);
+  
+  return now < expiresAt;
+}
+
+// Check if user is logged in
+if (AuthSystem.isLoggedIn()) {
+  // Session is valid
+  showDashboard();
+} else {
+  // Session expired or not logged in
+  showLogin();
+}
+```
+
+### Activity Tracking
+
+Sessions are automatically extended with user activity:
+
+```javascript
+updateActivity() {
+  if (this.currentSession && this.isSessionValid()) {
+    this.currentSession.lastActivity = new Date().toISOString();
+    
+    // Extend session expiration
+    this.currentSession.expiresAt = 
+      new Date(Date.now() + this.sessionTimeout).toISOString();
+    
+    this.saveSession();
+  }
+}
+```
+
+## Automatic Logout
+
+### Inactivity Timeout
+
+Users are automatically logged out after **30 minutes of inactivity**:
+
+```javascript
+setupInactivityLogout() {
+  let inactivityTimer;
+  const inactivityTime = 30 * 60 * 1000; // 30 minutes
+
+  const resetTimer = () => {
+    clearTimeout(inactivityTimer);
+    
+    if (this.currentSession) {
+      inactivityTimer = setTimeout(() => {
+        this.logActivity('INACTIVITY_LOGOUT', {
+          username: this.currentSession.username,
+          inactiveTime: 30 // minutes
+        });
+        this.logout();
+        this.showInactivityMessage();
+      }, inactivityTime);
+      
+      this.updateActivity();
+    }
+  };
+
+  // Events that reset the timer
+  ['mousedown', 'mousemove', 'keypress', 'scroll', 
+   'touchstart', 'click'].forEach(event => {
+    document.addEventListener(event, resetTimer, true);
+  });
+
+  resetTimer();
+}
+```
+
+<Note>
+  Any user interaction (mouse movement, keyboard input, clicks, scrolling) resets the inactivity timer.
+</Note>
+
+### Manual Logout
+
+Log out programmatically:
+
+```javascript
+// Logout current user
+AuthSystem.logout();
+
+// Redirect to login page
+window.location.href = '/login';
+```
+
+The logout process:
+
+```javascript
+logout() {
+  if (this.currentSession) {
+    // Log the logout event
+    this.logActivity('LOGOUT', {
+      username: this.currentSession.username,
+      sessionDuration: this.getSessionDuration()
+    });
+
+    // Clear session data
+    this.currentSession = null;
+    localStorage.removeItem('ospadep_active_session');
+  }
+}
+```
+
+## Security Features
+
+### Password Validation
+
+Minimum password requirements:
+
+```javascript
+if (password.length < 6) {
+  throw new Error('La contraseña debe tener al menos 6 caracteres');
+}
+```
+
+<Warning>
+  Current implementation stores passwords in plain text. For production environments:
+  - Hash passwords using bcrypt or Argon2
+  - Implement server-side validation
+  - Add password complexity requirements
+  - Implement rate limiting for login attempts
+</Warning>
+
+### Session Security
+
+**Session ID Generation:**
+
+```javascript
+generateSessionId() {
+  return Date.now().toString(36) + 
+         Math.random().toString(36).substr(2, 9);
+}
+```
+
+**Best Practices:**
+- Session IDs are unique per login
+- Sessions expire after 8 hours
+- Automatic logout on inactivity
+- All authentication events are logged
+
+### Audit Logging
+
+All authentication events are automatically logged:
+
+```javascript
+// Logged events
+- LOGIN_SUCCESS
+- LOGIN_FAILED
+- LOGOUT
+- INACTIVITY_LOGOUT
+- SESSION_EXPIRED
+- SESSION_RESTORED
+```
+
+Example audit entry:
+
+```javascript
+{
+  id: 1709647500123,
+  action: 'LOGIN_SUCCESS',
+  userId: 'ospadep_admin_2024',
+  username: 'ospadep_admin_2024',
+  userRole: 'super_admin',
+  timestamp: '2026-03-05T14:25:00.000Z',
+  details: {
+    username: 'ospadep_admin_2024',
+    role: 'super_admin',
+    sessionId: 'abc123xyz789'
+  },
+  sessionId: 'abc123xyz789',
+  url: 'https://example.com/login',
+  userAgent: 'Mozilla/5.0...'
+}
+```
+
+## Session Utilities
+
+### Get Session Duration
+
+Calculate how long the current session has been active:
+
+```javascript
+const duration = AuthSystem.getSessionDuration();
+console.log(`Session active for ${duration} minutes`);
+```
+
+### Get Session Age
+
+Get session age since login:
+
+```javascript
+const age = AuthSystem.getSessionAge();
+console.log(`Logged in ${age} minutes ago`);
+```
+
+## Implementation Example
+
+Complete login flow implementation:
+
+```javascript
+// Login form handler
+const loginForm = document.getElementById('loginForm');
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  
+  try {
+    // Show loading state
+    showLoading();
+    
+    // Attempt login
+    const result = await window.AuthSystem.login(username, password);
+    
+    if (result.success) {
+      // Store user info
+      sessionStorage.setItem('currentUser', 
+        JSON.stringify(result.user));
+      
+      // Redirect based on role
+      if (result.user.role === 'super_admin') {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+  } catch (error) {
+    // Show error message
+    hideLoading();
+    showError(error.message);
+  }
+});
+
+// Auto-logout setup
+window.addEventListener('load', () => {
+  if (!window.AuthSystem.isLoggedIn()) {
+    window.location.href = '/login';
+  }
+});
+```
+
+## Configuration
+
+Authentication settings from `config.js`:
+
+```javascript
+const CONFIG = {
+  SESSION_TIMEOUT: 30, // minutes
+  MAX_LOGIN_ATTEMPTS: 3,
+  LOG_ALL_ACTIONS: true,
+  MAX_AUDIT_RECORDS: 1000
+};
+```
+
+## Related Topics
+
+- [Multi-User System](/advanced/multi-user-system) - User roles and management
+- [Real-Time Sync](/advanced/real-time-sync) - Multi-user synchronization
+- [Data Management](/advanced/data-management) - Session and audit log storage

@@ -1,0 +1,665 @@
+---
+title: Data Management
+description: Data storage, backup, restore, and history tracking in Cotizador Online OSPADEP
+icon: 'database'
+---
+
+## Overview
+
+Cotizador Online OSPADEP uses localStorage for client-side data persistence. The system manages healthcare plan prices, custom configurations, user sessions, and audit logs.
+
+## Data Storage Architecture
+
+### localStorage Keys
+
+The application uses the following localStorage keys:
+
+| Key | Description | Data Type |
+|-----|-------------|----------|
+| `ospadep_custom_prices` | Custom price modifications | JSON Object |
+| `ospadep_custom_plans` | Custom plan configurations | JSON Object |
+| `ospadep_users` | User accounts database | JSON Object |
+| `ospadep_active_session` | Current user session | JSON Object |
+| `ospadep_audit_log` | Activity and audit logs | JSON Array |
+| `ospadep_last_sync` | Last synchronization timestamp | String |
+
+## Price Data Structure
+
+### Base Price Data
+
+From `precios-data.json`:
+
+```json
+{
+  "version": "2026-02",
+  "fechaActualizacion": "2026-01-16",
+  "prestadores": {
+    "omint": {
+      "name": "OMINT",
+      "tipoEstructura": "estructura_compleja",
+      "planes": {
+        "plan6500": {
+          "name": "PLAN 6500",
+          "type": "omint",
+          "preciosPorEdad": {
+            "0-25": {
+              "adultoConyugue": 158759,
+              "hijo1Menor": 138785,
+              "hijo2MasMenores": 120514
+            },
+            "26-35": {
+              "adultoConyugue": 227182,
+              "hijo1Menor": 138785,
+              "hijo2MasMenores": 120514
+            }
+          },
+          "features": [
+            "Cobertura integral OMINT",
+            "Red de prestadores nivel 6500"
+          ],
+          "recommended": true
+        }
+      }
+    }
+  },
+  "historialCambios": []
+}
+```
+
+### Price Structure Types
+
+The system supports multiple price structures:
+
+#### 1. Complex Structure (OMINT, ACTIVA SALUD, OSPADEP SALUD)
+
+```javascript
+"preciosPorEdad": {
+  "0-25": {
+    "adultoConyugue": 158759,
+    "hijo1Menor": 138785,
+    "hijo2MasMenores": 120514
+  },
+  "26-35": { /* ... */ },
+  "36-54": { /* ... */ }
+}
+```
+
+#### 2. Adult-Only Structure (SWISS MEDICAL)
+
+```javascript
+"preciosPorEdad": {
+  "≤65": 332704,
+  ">65": 965409
+}
+```
+
+#### 3. Marriage & Children Structure (MEDIFE)
+
+```javascript
+"precios": {
+  "individual": {
+    "0-29": 146277,
+    "30-39": 185174,
+    "40-49": 233581
+  },
+  "conyuge": {
+    "0-29": 127766,
+    "30-39": 152969
+  },
+  "matrimonio": {
+    "0-29": 274043,
+    "30-39": 338143
+  },
+  "hijos": {
+    "primerHijo": 124323,
+    "segundoHijo": 90869,
+    "hijoAdulto": 146668
+  }
+}
+```
+
+## Custom Price Storage
+
+### Saving Custom Prices
+
+From `script.js`:
+
+```javascript
+function saveCustomPrices() {
+  try {
+    localStorage.setItem('ospadep_custom_prices', 
+      JSON.stringify(planesData));
+    
+    // Log the save operation
+    if (window.UserManager) {
+      window.UserManager.logActivity('PRICES_SAVED', {
+        timestamp: new Date().toISOString(),
+        dataSize: JSON.stringify(planesData).length
+      });
+    }
+  } catch (error) {
+    console.error('Error saving custom prices:', error);
+    alert('Error al guardar precios personalizados');
+  }
+}
+```
+
+### Loading Custom Prices
+
+```javascript
+function loadCustomPrices() {
+  try {
+    const saved = localStorage.getItem('ospadep_custom_prices');
+    
+    if (saved) {
+      const customPrices = JSON.parse(saved);
+      
+      // Merge with base prices
+      Object.assign(planesData, customPrices);
+      
+      console.log('Custom prices loaded successfully');
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error loading custom prices:', error);
+    return false;
+  }
+}
+```
+
+<Note>
+  Custom prices override base prices from `precios-data.json`. Always load base prices first, then apply custom prices.
+</Note>
+
+## User Data Storage
+
+### User Object Structure
+
+```javascript
+{
+  "ospadep_admin_2024": {
+    "id": "ospadep_admin_2024",
+    "username": "ospadep_admin_2024",
+    "password": "OSPADEP_SecureAdmin_2024!",
+    "role": "super_admin",
+    "name": "Administrador OSPADEP",
+    "email": "admin@ospadep.com",
+    "createdAt": "2026-01-16T10:30:00.000Z",
+    "lastLogin": "2026-03-05T14:25:00.000Z",
+    "isActive": true,
+    "permissions": ["all"],
+    "createdBy": "system"
+  }
+}
+```
+
+### Saving Users
+
+From `auth-system.js`:
+
+```javascript
+saveUsers(users = this.users) {
+  localStorage.setItem('ospadep_users', JSON.stringify(users));
+  this.users = users;
+}
+```
+
+### Loading Users
+
+```javascript
+loadUsers() {
+  const defaultUsers = {
+    'ospadep_admin_2024': {
+      // SuperAdmin default user
+    }
+  };
+
+  const saved = localStorage.getItem('ospadep_users');
+  if (saved) {
+    try {
+      const users = JSON.parse(saved);
+      // Ensure SuperAdmin always exists
+      return { ...defaultUsers, ...users };
+    } catch (error) {
+      console.error('Error loading users:', error);
+      return defaultUsers;
+    }
+  }
+  
+  // Save default users
+  this.saveUsers(defaultUsers);
+  return defaultUsers;
+}
+```
+
+## Session Management
+
+### Active Session Structure
+
+```javascript
+{
+  "sessionId": "abc123xyz789",
+  "userId": "ospadep_admin_2024",
+  "username": "ospadep_admin_2024",
+  "name": "Administrador OSPADEP",
+  "role": "super_admin",
+  "permissions": ["all"],
+  "loginTime": "2026-03-05T14:25:00.000Z",
+  "lastActivity": "2026-03-05T14:30:00.000Z",
+  "expiresAt": "2026-03-05T22:25:00.000Z"
+}
+```
+
+### Session Persistence
+
+```javascript
+// Save session
+saveUserSession() {
+  if (this.currentUser) {
+    localStorage.setItem('ospadep_user_session', 
+      JSON.stringify(this.currentUser));
+  }
+}
+
+// Load session
+loadCurrentUser() {
+  const saved = localStorage.getItem('ospadep_user_session');
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      if (this.isSessionValid(user)) {
+        this.currentUser = user;
+        this.updateLastActivity();
+      } else {
+        localStorage.removeItem('ospadep_user_session');
+      }
+    } catch (error) {
+      localStorage.removeItem('ospadep_user_session');
+    }
+  }
+}
+```
+
+## Audit Log Management
+
+### Audit Entry Structure
+
+```javascript
+{
+  "id": 1709647500123,
+  "action": "PRICE_UPDATE",
+  "userId": "ospadep_admin_2024",
+  "username": "ospadep_admin_2024",
+  "userRole": "super_admin",
+  "timestamp": "2026-03-05T14:25:00.000Z",
+  "details": {
+    "plan": "OMINT 6500",
+    "oldPrice": 158759,
+    "newPrice": 162541
+  },
+  "sessionId": "abc123xyz789",
+  "url": "https://example.com/admin",
+  "userAgent": "Mozilla/5.0..."
+}
+```
+
+### Saving to Audit Log
+
+From `user-system.js`:
+
+```javascript
+saveToAuditLog(entry) {
+  let auditLog = JSON.parse(
+    localStorage.getItem('ospadep_audit_log') || '[]');
+  
+  auditLog.push(entry);
+  
+  // Keep only the most recent records
+  if (auditLog.length > APP_CONFIG.MAX_AUDIT_RECORDS) {
+    auditLog = auditLog.slice(-APP_CONFIG.MAX_AUDIT_RECORDS);
+  }
+  
+  localStorage.setItem('ospadep_audit_log', 
+    JSON.stringify(auditLog));
+}
+```
+
+### Retrieving Audit Logs
+
+```javascript
+getAuditLog(filters = {}) {
+  const auditLog = JSON.parse(
+    localStorage.getItem('ospadep_audit_log') || '[]');
+  
+  let filteredLog = auditLog;
+  
+  // Apply filters
+  if (filters.userId) {
+    filteredLog = filteredLog.filter(
+      entry => entry.userId === filters.userId);
+  }
+  
+  if (filters.action) {
+    filteredLog = filteredLog.filter(
+      entry => entry.action === filters.action);
+  }
+  
+  if (filters.dateFrom) {
+    filteredLog = filteredLog.filter(
+      entry => new Date(entry.timestamp) >= new Date(filters.dateFrom));
+  }
+  
+  // Sort by date descending
+  return filteredLog.sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+```
+
+## Backup and Restore
+
+### Complete Data Backup
+
+```javascript
+function backupAllData() {
+  const backup = {
+    exportDate: new Date().toISOString(),
+    version: '2026-02',
+    data: {
+      prices: localStorage.getItem('ospadep_custom_prices'),
+      plans: localStorage.getItem('ospadep_custom_plans'),
+      users: localStorage.getItem('ospadep_users'),
+      auditLog: localStorage.getItem('ospadep_audit_log')
+    }
+  };
+  
+  return backup;
+}
+```
+
+### Export Data to File
+
+```javascript
+function exportBackup() {
+  const backup = backupAllData();
+  const dataStr = JSON.stringify(backup, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `ospadep_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  
+  // Log export
+  if (window.UserManager) {
+    window.UserManager.logActivity('DATA_EXPORT', {
+      dataSize: dataStr.length,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+```
+
+### Restore from Backup
+
+```javascript
+function restoreFromBackup(backupData) {
+  try {
+    // Validate backup structure
+    if (!backupData.data || !backupData.version) {
+      throw new Error('Invalid backup format');
+    }
+    
+    // Restore each component
+    if (backupData.data.prices) {
+      localStorage.setItem('ospadep_custom_prices', 
+        backupData.data.prices);
+    }
+    
+    if (backupData.data.plans) {
+      localStorage.setItem('ospadep_custom_plans', 
+        backupData.data.plans);
+    }
+    
+    if (backupData.data.users) {
+      localStorage.setItem('ospadep_users', 
+        backupData.data.users);
+    }
+    
+    if (backupData.data.auditLog) {
+      localStorage.setItem('ospadep_audit_log', 
+        backupData.data.auditLog);
+    }
+    
+    // Log restore
+    if (window.UserManager) {
+      window.UserManager.logActivity('DATA_RESTORE', {
+        backupDate: backupData.exportDate,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    alert('Backup restaurado exitosamente');
+    location.reload();
+    
+  } catch (error) {
+    console.error('Error restoring backup:', error);
+    alert('Error al restaurar backup: ' + error.message);
+  }
+}
+```
+
+### Import from File
+
+```javascript
+function importBackup() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      try {
+        const backup = JSON.parse(event.target.result);
+        restoreFromBackup(backup);
+      } catch (error) {
+        alert('Error al leer archivo: ' + error.message);
+      }
+    };
+    
+    reader.readAsText(file);
+  };
+  
+  input.click();
+}
+```
+
+## Data Export
+
+### Export Audit Log
+
+From `user-system.js`:
+
+```javascript
+exportAuditLog() {
+  const auditLog = this.getAuditLog();
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    totalRecords: auditLog.length,
+    records: auditLog
+  };
+  
+  const dataStr = JSON.stringify(exportData, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `ospadep_auditoria_${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  
+  this.logActivity('AUDIT_EXPORT', { 
+    recordCount: auditLog.length 
+  });
+}
+```
+
+### Export Price History
+
+```javascript
+function exportPriceHistory() {
+  const history = planesData.historialCambios || [];
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    version: planesData.version,
+    totalChanges: history.length,
+    changes: history
+  };
+  
+  const dataStr = JSON.stringify(exportData, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `ospadep_historial_${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+}
+```
+
+## History Tracking
+
+### Price Change History
+
+From `precios-data.json`:
+
+```json
+"historialCambios": [
+  {
+    "fecha": "2026-01-16",
+    "descripcion": "Actualización FEBRERO 2026: OSPADEP SALUD +2.8%, ACTIVA SALUD +2.8%, OMINT +2.55%",
+    "autor": "Panel Admin"
+  },
+  {
+    "fecha": "2025-12-23",
+    "descripcion": "Actualización manual de precios: MEDIFE (nuevos precios)",
+    "autor": "Panel Admin"
+  }
+]
+```
+
+### Adding History Entry
+
+```javascript
+function addToHistory(description, author = 'Panel Admin') {
+  if (!planesData.historialCambios) {
+    planesData.historialCambios = [];
+  }
+  
+  planesData.historialCambios.push({
+    fecha: new Date().toISOString().split('T')[0],
+    descripcion: description,
+    autor: author
+  });
+  
+  saveCustomPrices();
+}
+```
+
+## Storage Limits
+
+### localStorage Capacity
+
+```javascript
+function checkStorageCapacity() {
+  let total = 0;
+  
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      total += localStorage[key].length + key.length;
+    }
+  }
+  
+  const totalKB = (total / 1024).toFixed(2);
+  const limit = 5120; // 5MB typical limit
+  const percentUsed = ((total / 1024) / limit * 100).toFixed(2);
+  
+  return {
+    used: totalKB + ' KB',
+    limit: limit + ' KB',
+    percentUsed: percentUsed + '%'
+  };
+}
+```
+
+<Warning>
+  localStorage typically has a 5-10MB limit per domain. Monitor storage usage and implement cleanup strategies for large audit logs.
+</Warning>
+
+## Data Cleanup
+
+### Clear Old Audit Logs
+
+```javascript
+function cleanupOldAuditLogs(daysToKeep = 30) {
+  const auditLog = JSON.parse(
+    localStorage.getItem('ospadep_audit_log') || '[]');
+  
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+  
+  const filtered = auditLog.filter(entry => 
+    new Date(entry.timestamp) > cutoffDate);
+  
+  localStorage.setItem('ospadep_audit_log', 
+    JSON.stringify(filtered));
+  
+  return auditLog.length - filtered.length; // removed count
+}
+```
+
+### Reset to Defaults
+
+```javascript
+function resetToDefaults() {
+  if (confirm('¿Estás seguro de que deseas restablecer todos los datos?')) {
+    // Clear custom prices
+    localStorage.removeItem('ospadep_custom_prices');
+    localStorage.removeItem('ospadep_custom_plans');
+    
+    // Keep users and audit log
+    // localStorage.removeItem('ospadep_users');
+    // localStorage.removeItem('ospadep_audit_log');
+    
+    alert('Datos restablecidos. La página se recargará.');
+    location.reload();
+  }
+}
+```
+
+## Configuration
+
+Data management settings from `config.js`:
+
+```javascript
+const CONFIG = {
+  // Data configuration
+  BACKUP_INTERVAL: 24, // hours
+  MAX_HISTORY_RECORDS: 100,
+  MAX_AUDIT_RECORDS: 1000,
+  
+  // Price configuration
+  DEFAULT_CURRENCY: 'ARS',
+  PRICE_PRECISION: 0, // decimals
+  MIN_PRICE: 1000,
+  MAX_PRICE: 500000
+};
+```
+
+## Related Topics
+
+- [Multi-User System](/advanced/multi-user-system) - User data management
+- [Authentication](/advanced/authentication) - Session data storage
+- [Real-Time Sync](/advanced/real-time-sync) - Data synchronization

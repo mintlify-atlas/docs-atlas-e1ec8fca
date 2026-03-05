@@ -1,0 +1,380 @@
+---
+title: 'Pricing Data Structure'
+description: 'Complete structure reference for precios-data.json'
+---
+
+## Overview
+
+The `precios-data.json` file contains all healthcare plan pricing information, structured by provider and plan. This external data file enables easy price updates without code changes.
+
+---
+
+## Root Structure
+
+```json
+{
+  "version": "2026-02",
+  "fechaActualizacion": "2026-01-16",
+  "prestadores": { ... },
+  "historialCambios": [ ... ]
+}
+```
+
+### Top-Level Fields
+
+<ParamField path="version" type="string">
+  Version identifier (format: `YYYY-MM`)
+</ParamField>
+
+<ParamField path="fechaActualizacion" type="string">
+  Last update date (ISO format: `YYYY-MM-DD`)
+</ParamField>
+
+<ParamField path="prestadores" type="object">
+  Object containing all healthcare providers, indexed by provider key
+</ParamField>
+
+<ParamField path="historialCambios" type="array">
+  Array of price change history records
+</ParamField>
+
+---
+
+## Prestadores Object
+
+```javascript
+prestadores: {
+  "omint": { ... },
+  "swissMedical": { ... },
+  "medife": { ... },
+  "activaSalud": { ... },
+  "ospadepSalud": { ... },
+  "swNubial": { ... },
+  "swiss": { ... }
+}
+```
+
+### Provider Keys
+
+- `omint`: OMINT plans
+- `swissMedical`: Swiss Medical plans
+- `medife`: MEDIFE plans
+- `activaSalud`: Activa Salud plans
+- `ospadepSalud`: OSPADEP Salud plans
+- `swNubial`: SW Nubial plans
+- `swiss`: Swiss plans
+
+---
+
+## Provider Structure
+
+Each provider has the following structure:
+
+<ParamField path="name" type="string">
+  Display name of the provider (e.g., `"OMINT"`)
+</ParamField>
+
+<ParamField path="tipoEstructura" type="string">
+  Pricing structure type:
+  - `estructura_compleja`: Role-based pricing (OMINT, OSPADEP)
+  - `plantilla_adultos_solo`: All members as adults (Swiss Medical)
+  - `plantilla_adultos_simple`: Simple adult pricing (2 age groups)
+  - `estructura_matrimonio_hijos`: Individual/couple/children (MEDIFE)
+</ParamField>
+
+<ParamField path="planes" type="object">
+  Object containing all plans for this provider
+</ParamField>
+
+**Example:**
+
+```json
+"omint": {
+  "name": "OMINT",
+  "tipoEstructura": "estructura_compleja",
+  "planes": {
+    "plan2500": { ... },
+    "plan4500": { ... }
+  }
+}
+```
+
+---
+
+## Plan Structure
+
+### Common Fields
+
+<ParamField path="name" type="string">
+  Display name of the plan (e.g., `"PLAN 6500"`)
+</ParamField>
+
+<ParamField path="type" type="string">
+  Plan type matching provider key
+</ParamField>
+
+<ParamField path="features" type="array">
+  Array of feature descriptions (strings)
+</ParamField>
+
+<ParamField path="recommended" type="boolean">
+  Whether this plan is marked as recommended
+</ParamField>
+
+---
+
+## Pricing Structures
+
+### Type 1: estructura_compleja (OMINT)
+
+Role-based pricing with multiple age brackets.
+
+```json
+"preciosPorEdad": {
+  "0-25": {
+    "adultoConyugue": 92859,
+    "hijo1Menor": 80877,
+    "hijo2MasMenores": 69932
+  },
+  "26-35": { ... },
+  "36-54": { ... },
+  "55-59": { ... },
+  "60+": { ... }
+}
+```
+
+**Age Groups:**
+- `0-25`, `26-35`, `36-54`, `55-59`, `60+`
+
+**Roles:**
+- `adultoConyugue`: Primary holder and spouse
+- `hijo1Menor`: First child under 25
+- `hijo2MasMenores`: Additional children under 25
+
+---
+
+### Type 2: plantilla_adultos_solo (Swiss Medical)
+
+Simple age-based pricing (all members as adults).
+
+```json
+"preciosPorEdad": {
+  "≤65": 277459,
+  ">65": 806229
+}
+```
+
+**Age Groups:**
+- `≤65`: Ages 65 and under
+- `>65`: Ages over 65
+
+**Pricing Model:**
+- All family members charged at same rate
+- No discounts for children
+- Only age affects price
+
+---
+
+### Type 3: estructura_matrimonio_hijos (MEDIFE)
+
+Separate pricing for individuals, couples, and children.
+
+```json
+"precios": {
+  "individual": {
+    "0-29": 121352,
+    "30-39": 152538,
+    "40-49": 198362,
+    "50-59": 287740,
+    "60+": 313450
+  },
+  "conyuge": {
+    "0-29": 105254,
+    "30-39": 122687,
+    "40-49": 145356,
+    "50-59": 153784,
+    "60+": 165266
+  },
+  "matrimonio": {
+    "0-29": 226606,
+    "30-39": 275225,
+    "40-49": 343718,
+    "50-59": 441524,
+    "60+": 478716
+  },
+  "hijos": {
+    "primerHijo": 98862,
+    "segundoHijo": 81677,
+    "hijoAdulto": 121714,
+    "familiarCargo": 313450
+  }
+}
+```
+
+**Categories:**
+- `individual`: Single person rates
+- `conyuge`: Spouse rates (when added to individual)
+- `matrimonio`: Pre-calculated couple rates
+- `hijos`: Child rates
+  - `primerHijo`: First child under 21
+  - `segundoHijo`: Second child under 21
+  - `hijoAdulto`: Adult child (21-29)
+  - `familiarCargo`: Other dependent
+
+---
+
+### Type 4: OSPADEP SALUD (Fine-Grained Age Brackets)
+
+Detailed age brackets with separate pricing for different member types.
+
+```json
+"preciosPorEdad": {
+  "18-27": {
+    "adultoConyugue": 74087,
+    "hijoMenor": 45193
+  },
+  "28-35": { ... },
+  "36-40": { ... },
+  "41-45": { ... },
+  "46-50": { ... },
+  "51-55": { ... },
+  "56-64": { ... },
+  "65+": { ... }
+},
+"preciosPorEdadParticular": {
+  // Same structure with different prices
+}
+```
+
+**Age Groups:**
+- 8 different age brackets from 18-27 to 65+
+
+**Pricing Types:**
+- `preciosPorEdad`: Standard pricing
+- `preciosPorEdadParticular`: Individual (non-corporate) pricing
+
+**Roles:**
+- `adultoConyugue`: Adult holder or spouse
+- `hijoMenor`: Minor child
+
+---
+
+## Features Array
+
+```json
+"features": [
+  "Cobertura integral OMINT",
+  "Red de prestadores nivel 6500",
+  "Internación en habitación privada",
+  "Consultas médicas sin límite",
+  "Estudios de alta complejidad",
+  "Emergencias 24hs",
+  "Cobertura odontológica completa",
+  "Medicina preventiva"
+]
+```
+
+---
+
+## Historial Cambios Structure
+
+```json
+"historialCambios": [
+  {
+    "fecha": "2026-01-16",
+    "descripcion": "Actualización FEBRERO 2026: OSPADEP SALUD +2.8%, ACTIVA SALUD +2.8%, OMINT +2.55%",
+    "autor": "Panel Admin"
+  }
+]
+```
+
+<ParamField path="fecha" type="string">
+  Date of change (ISO format)
+</ParamField>
+
+<ParamField path="descripcion" type="string">
+  Description of changes made
+</ParamField>
+
+<ParamField path="autor" type="string">
+  Who made the change (`Panel Admin`, `Sistema`, etc.)
+</ParamField>
+
+---
+
+## Complete Example: OMINT Plan
+
+```json
+"plan6500": {
+  "name": "PLAN 6500",
+  "type": "omint",
+  "preciosPorEdad": {
+    "0-25": {
+      "adultoConyugue": 158759,
+      "hijo1Menor": 138785,
+      "hijo2MasMenores": 120514
+    },
+    "26-35": {
+      "adultoConyugue": 227182,
+      "hijo1Menor": 138785,
+      "hijo2MasMenores": 120514
+    },
+    "36-54": {
+      "adultoConyugue": 266052,
+      "hijo1Menor": 138785,
+      "hijo2MasMenores": 120514
+    },
+    "55-59": {
+      "adultoConyugue": 445942,
+      "hijo1Menor": 138785,
+      "hijo2MasMenores": 120514
+    },
+    "60+": {
+      "adultoConyugue": 664100,
+      "hijo1Menor": 138785,
+      "hijo2MasMenores": 120514
+    }
+  },
+  "features": [
+    "Cobertura integral OMINT",
+    "Red de prestadores nivel 6500",
+    "Internación en habitación privada",
+    "Consultas médicas sin límite",
+    "Estudios de alta complejidad",
+    "Emergencias 24hs",
+    "Cobertura odontológica completa",
+    "Medicina preventiva"
+  ],
+  "recommended": true
+}
+```
+
+---
+
+## Loading Pricing Data
+
+```javascript
+// Fetch pricing data
+const response = await fetch('precios-data.json');
+const data = await response.json();
+
+// Access provider
+const omint = data.prestadores.omint;
+
+// Access plan
+const plan6500 = omint.planes.plan6500;
+
+// Get price for age group
+const precioAdulto = plan6500.preciosPorEdad['26-35'].adultoConyugue;
+console.log('Precio adulto 26-35:', precioAdulto); // 227182
+```
+
+---
+
+## Validation Rules
+
+- All prices must be positive integers
+- Age groups must be non-overlapping
+- Each plan must have at least one feature
+- Provider keys must be unique
+- Plan keys within a provider must be unique

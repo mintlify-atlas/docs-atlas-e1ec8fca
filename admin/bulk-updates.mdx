@@ -1,0 +1,536 @@
+---
+title: 'Actualizaciones Masivas'
+description: 'Aplicar cambios porcentuales a múltiples planes simultáneamente'
+icon: 'arrows-rotate'
+---
+
+## Descripción General
+
+Las actualizaciones masivas permiten aplicar aumentos o descuentos porcentuales a múltiples planes simultáneamente, ahorrando tiempo y garantizando consistencia en los ajustes de precios.
+
+<Info>
+  Ideal para aumentos generales por inflación, ajustes estacionales o descuentos promocionales.
+</Info>
+
+## Actualización Masiva por Porcentaje
+
+### Cuándo Usar Actualizaciones Masivas
+
+**Casos de uso comunes:**
+- **Ajustes por inflación**: Aplicar aumentos mensuales o trimestrales
+- **Descuentos promocionales**: Reducir precios temporalmente
+- **Actualización de tarifas**: Cuando el prestador modifica todos sus precios
+- **Ajustes por categoría**: Modificar solo planes individuales o familiares
+
+### Tipos de Actualización
+
+<CardGroup cols={2}>
+  <Card title="Aumento Masivo" icon="arrow-trend-up">
+    Incrementa los precios de los planes seleccionados según un porcentaje positivo.
+    
+    Ejemplo: `1.5` para aumentar 1.5%
+  </Card>
+  
+  <Card title="Descuento Masivo" icon="arrow-trend-down">
+    Reduce los precios de los planes seleccionados según un porcentaje negativo.
+    
+    Ejemplo: `-10` para descontar 10%
+  </Card>
+</CardGroup>
+
+## Aplicar Aumento Masivo
+
+### Proceso de Aumento
+
+<Steps>
+  <Step title="Acceder a la función">
+    En el panel administrativo, haz clic en **"Actualización Masiva"** y selecciona **"Aumento"**.
+  </Step>
+  
+  <Step title="Ingresar porcentaje">
+    Escribe el porcentaje de aumento deseado (por ejemplo, `1.5` para 1.5%).
+    
+    <Info>
+      Los valores positivos incrementan el precio. No uses el símbolo `+`.
+    </Info>
+  </Step>
+  
+  <Step title="Seleccionar categoría">
+    Elige qué planes actualizar:
+    - **Todos los planes**: Afecta planes individuales y familiares
+    - **Solo planes individuales**: Únicamente planes para una persona
+    - **Solo planes familiares**: Únicamente planes para familias
+  </Step>
+  
+  <Step title="Previsualizar cambios">
+    El sistema muestra cuántos planes serán afectados y ejemplos de cálculos.
+  </Step>
+  
+  <Step title="Confirmar operación">
+    Confirma la acción en el modal de confirmación.
+    
+    <Warning>
+      Esta acción modifica múltiples precios simultáneamente. Asegúrate de haber exportado un respaldo.
+    </Warning>
+  </Step>
+</Steps>
+
+### Ejemplo de Aumento del 1.5%
+
+```javascript
+// Cálculo automático del sistema
+const porcentaje = 1.5;
+const precioOriginal = 189278; // OMINT PLAN 4500
+
+// Fórmula aplicada
+const precioNuevo = Math.round(precioOriginal * (1 + porcentaje / 100));
+// precioNuevo = 192119
+
+// Cambio: +$2,841
+```
+
+### Resultado de la Operación
+
+Al confirmar, el sistema:
+
+1. Aplica el aumento a todos los planes seleccionados
+2. Guarda los nuevos precios en `localStorage`
+3. Registra la operación en el histórico
+4. Muestra un mensaje de confirmación:
+
+```text
+✅ Se aplicó un aumento del 1.5% a 24 planes
+```
+
+## Aplicar Descuento Masivo
+
+### Proceso de Descuento
+
+<Steps>
+  <Step title="Acceder a la función">
+    En el panel administrativo, haz clic en **"Actualización Masiva"** y selecciona **"Descuento"**.
+  </Step>
+  
+  <Step title="Ingresar porcentaje">
+    Escribe el porcentaje de descuento (valor positivo, por ejemplo, `10` para 10% de descuento).
+    
+    <Warning>
+      El sistema interpreta este valor como descuento. No uses valores negativos.
+    </Warning>
+  </Step>
+  
+  <Step title="Seleccionar categoría">
+    Elige qué planes actualizar (todos, individuales o familiares).
+  </Step>
+  
+  <Step title="Confirmar operación">
+    Revisa y confirma los cambios.
+  </Step>
+</Steps>
+
+### Ejemplo de Descuento del 10%
+
+```javascript
+// Cálculo para descuento
+const porcentaje = 10;
+const precioOriginal = 189278; // OMINT PLAN 4500
+
+// Fórmula aplicada
+const precioNuevo = Math.round(precioOriginal * (1 - porcentaje / 100));
+// precioNuevo = 170350
+
+// Cambio: -$18,928
+```
+
+## Selección de Categorías
+
+### Opciones Disponibles
+
+<Tabs>
+  <Tab title="Todos los Planes">
+    **Afecta**: Todos los planes del sistema sin distinción.
+    
+    **Uso recomendado**:
+    - Ajustes generales por inflación
+    - Actualizaciones de tarifas del prestador
+    - Cambios regulatorios que afectan todos los planes
+    
+    **Ejemplo**:
+    ```javascript
+    category: 'all'
+    // Aplica a: OMINT, Swiss Medical, Medife, etc.
+    // Total de planes: 50+
+    ```
+  </Tab>
+  
+  <Tab title="Solo Individuales">
+    **Afecta**: Únicamente planes diseñados para una persona.
+    
+    **Uso recomendado**:
+    - Promociones para personas solteras
+    - Ajustes específicos de mercado individual
+    - Competitividad en segmento individual
+    
+    **Ejemplo**:
+    ```javascript
+    category: 'individual'
+    // Aplica solo a planes marcados como 'individual'
+    ```
+  </Tab>
+  
+  <Tab title="Solo Familiares">
+    **Afecta**: Únicamente planes diseñados para familias o parejas.
+    
+    **Uso recomendado**:
+    - Promociones familiares
+    - Descuentos por grupo familiar
+    - Ajustes específicos del segmento familiar
+    
+    **Ejemplo**:
+    ```javascript
+    category: 'familiar'
+    // Aplica solo a planes marcados como 'familiar'
+    ```
+  </Tab>
+</Tabs>
+
+## Confirmación y Previsualización
+
+### Modal de Confirmación
+
+Antes de aplicar cambios, el sistema muestra:
+
+```text
+⚠️ Confirmación de Cambios
+
+¿Estás seguro de aplicar un aumento del 1.5% a todos los planes?
+
+Esto afectará:
+- 24 planes en total
+- Categorías: Individual y Familiar
+- Prestadores: OMINT, Swiss Medical, Medife, Activa Salud
+
+[Cancelar] [Confirmar]
+```
+
+### Previsualización de Cálculos
+
+El sistema muestra ejemplos de cómo se calcularán los nuevos precios:
+
+<CodeGroup>
+```javascript Ejemplo 1: OMINT Plan 4500
+Precio actual: $189,278
+Porcentaje: +1.5%
+Precio nuevo: $192,119
+Cambio: +$2,841
+```
+
+```javascript Ejemplo 2: Swiss Medical PO64
+Precio actual: $296,665
+Porcentaje: +1.5%
+Precio nuevo: $301,115
+Cambio: +$4,450
+```
+
+```javascript Ejemplo 3: Medife Plata (Individual)
+Precio actual: $121,979
+Porcentaje: +1.5%
+Precio nuevo: $123,809
+Cambio: +$1,830
+```
+</CodeGroup>
+
+## Ejemplos Prácticos
+
+### Caso 1: Aumento Mensual por Inflación
+
+<Steps>
+  <Step title="Contexto">
+    OSPADEP necesita aplicar un aumento del 2.5% a todos los planes debido al índice de inflación.
+  </Step>
+  
+  <Step title="Ejecución">
+    1. Accede a **"Actualización Masiva"**
+    2. Ingresa: `2.5`
+    3. Selecciona: **"Todos los planes"**
+    4. Confirma la operación
+  </Step>
+  
+  <Step title="Resultado">
+    ```text
+    ✅ Se aplicó un aumento del 2.5% a 50 planes
+    
+    Ejemplos de cambios:
+    - OMINT Plan 4500: $189,278 → $194,010 (+$4,732)
+    - Swiss PO64: $296,665 → $304,082 (+$7,417)
+    - Medife Plata: $121,979 → $125,028 (+$3,049)
+    ```
+  </Step>
+</Steps>
+
+### Caso 2: Promoción en Planes Familiares
+
+<Steps>
+  <Step title="Contexto">
+    Campaña de descuento del 10% solo para planes familiares durante el mes de marzo.
+  </Step>
+  
+  <Step title="Ejecución">
+    1. Accede a **"Actualización Masiva"** > **"Descuento"**
+    2. Ingresa: `10`
+    3. Selecciona: **"Solo planes familiares"**
+    4. Confirma la operación
+  </Step>
+  
+  <Step title="Resultado">
+    ```text
+    💰 Se aplicó un descuento del 10% a 25 planes
+    
+    Planes familiares actualizados:
+    - OMINT Plan 6500 (Familia): $236,654 → $212,989 (-$23,665)
+    - Swiss PO62 (Familia): $247,403 → $222,663 (-$24,740)
+    - Medife Oro (Matrimonio): $262,692 → $236,423 (-$26,269)
+    ```
+  </Step>
+</Steps>
+
+### Caso 3: Ajuste Específico de Plan Individual
+
+<Steps>
+  <Step title="Contexto">
+    Los planes individuales necesitan ser más competitivos con un descuento del 5%.
+  </Step>
+  
+  <Step title="Ejecución">
+    1. Accede a **"Actualización Masiva"** > **"Descuento"**
+    2. Ingresa: `5`
+    3. Selecciona: **"Solo planes individuales"**
+    4. Confirma
+  </Step>
+  
+  <Step title="Resultado">
+    ```text
+    💰 Se aplicó un descuento del 5% a 25 planes
+    
+    Solo planes individuales afectados:
+    - OMINT Plan 4500 (Individual): $161,234 → $153,172 (-$8,062)
+    - Activa AS 300: $79,357 → $75,389 (-$3,968)
+    ```
+  </Step>
+</Steps>
+
+## Lógica de Cálculo
+
+### Código de Aplicación
+
+```javascript
+// Función en script.js (línea ~4702)
+function applyBulkIncrease() {
+  const percentage = parseFloat(document.getElementById('increase-percentage').value);
+  const category = document.getElementById('increase-category').value;
+  
+  // Validaciones
+  if (isNaN(percentage) || percentage <= 0) {
+    alert('Por favor, ingresa un porcentaje válido (mayor a 0)');
+    return;
+  }
+  
+  let updatedPlans = 0;
+  const changes = [];
+  
+  // Aplicar cambios según categoría
+  Object.keys(planesData).forEach(categoryKey => {
+    if (category === 'all' || 
+        (category === 'individual' && categoryKey === 'individual') ||
+        (category === 'familiar' && categoryKey === 'familiar')) {
+      
+      planesData[categoryKey].forEach(plan => {
+        const oldPrice = plan.price;
+        const newPrice = Math.round(oldPrice * (1 + percentage / 100));
+        plan.price = newPrice;
+        updatedPlans++;
+        
+        changes.push({
+          plan: plan.name,
+          category: categoryKey,
+          oldPrice: oldPrice,
+          newPrice: newPrice,
+          change: newPrice - oldPrice
+        });
+      });
+    }
+  });
+  
+  // Guardar cambios
+  saveCustomPrices();
+  
+  // Registrar en histórico
+  addToHistory({
+    type: 'bulk_increase',
+    description: `Aumento masivo del ${percentage}% aplicado`,
+    plansAffected: updatedPlans,
+    changes: changes
+  });
+}
+```
+
+### Fórmulas Aplicadas
+
+<Tabs>
+  <Tab title="Aumento">
+    ```javascript
+    precioNuevo = Math.round(precioOriginal * (1 + porcentaje / 100))
+    
+    // Ejemplo: 1.5% de aumento
+    // precioOriginal = 100000
+    // precioNuevo = Math.round(100000 * 1.015)
+    // precioNuevo = 101500
+    ```
+  </Tab>
+  
+  <Tab title="Descuento">
+    ```javascript
+    precioNuevo = Math.round(precioOriginal * (1 - porcentaje / 100))
+    
+    // Ejemplo: 10% de descuento
+    // precioOriginal = 100000
+    // precioNuevo = Math.round(100000 * 0.90)
+    // precioNuevo = 90000
+    ```
+  </Tab>
+  
+  <Tab title="Redondeo">
+    ```javascript
+    // Se usa Math.round() para redondear al entero más cercano
+    
+    Math.round(100000.4) // 100000
+    Math.round(100000.5) // 100001
+    Math.round(100000.6) // 100001
+    ```
+  </Tab>
+</Tabs>
+
+## Operaciones Destructivas
+
+<Warning>
+  Las actualizaciones masivas son operaciones irreversibles que afectan múltiples registros simultáneamente.
+</Warning>
+
+### Precauciones Importantes
+
+1. **Exporta siempre antes de actualizar**
+   ```bash
+   Panel Admin > Exportar Configuración
+   # Guarda: ospadep_config_2025-03-05.json
+   ```
+
+2. **Verifica el porcentaje dos veces**
+   - Un error de tipeo puede causar cambios significativos
+   - `15` en lugar de `1.5` = 15% en lugar de 1.5%
+
+3. **Revisa la categoría seleccionada**
+   - Asegúrate de seleccionar la categoría correcta
+   - "Todos" afecta a TODOS los planes
+
+4. **Confirma en el modal**
+   - Lee cuidadosamente el mensaje de confirmación
+   - Verifica la cantidad de planes afectados
+
+### Recuperación de Errores
+
+Si aplicaste cambios incorrectos:
+
+<Steps>
+  <Step title="Opción 1: Restaurar precios originales">
+    ```text
+    Panel Admin > Restaurar Precios Originales
+    ```
+    Esto revierte TODOS los cambios a los valores iniciales del sistema.
+  </Step>
+  
+  <Step title="Opción 2: Importar respaldo">
+    ```text
+    Panel Admin > Importar Configuración
+    Selecciona: ospadep_config_[fecha].json
+    ```
+    Restaura los precios desde un archivo exportado anteriormente.
+  </Step>
+  
+  <Step title="Opción 3: Aplicar corrección inversa">
+    Si aplicaste +10% por error, aplica -9.09% para compensar:
+    ```javascript
+    // Fórmula de corrección
+    porcentajeCorreccion = -((porcentajeError / (100 + porcentajeError)) * 100)
+    
+    // Ejemplo: error +10%
+    // corrección = -((10 / 110) * 100) = -9.09%
+    ```
+  </Step>
+</Steps>
+
+## Auditoría de Cambios
+
+### Registro Automático
+
+Todas las actualizaciones masivas quedan registradas:
+
+```javascript
+// Entrada del histórico (user-system.js)
+{
+  "id": 1732895600000,
+  "action": "BULK_INCREASE",
+  "userId": "admin_user",
+  "userRole": "admin",
+  "timestamp": "2025-03-05T14:30:00.000Z",
+  "details": {
+    "percentage": 1.5,
+    "category": "all",
+    "plansAffected": 50
+  },
+  "sessionId": "abc123xyz"
+}
+```
+
+### Consultar Logs
+
+Accede a los logs completos en:
+
+<Card title="Sistema de Auditoría" icon="clipboard-list" href="/admin/audit-system">
+  Revisa todos los cambios y actividad de usuarios.
+</Card>
+
+## Mejores Prácticas
+
+<AccordionGroup>
+  <Accordion title="Antes de la actualización">
+    - Exporta la configuración actual
+    - Verifica el porcentaje con una calculadora
+    - Confirma la categoría seleccionada
+    - Planifica el timing de la actualización
+  </Accordion>
+  
+  <Accordion title="Durante la actualización">
+    - Lee cuidadosamente el modal de confirmación
+    - Verifica la cantidad de planes afectados
+    - No interrumpas el proceso una vez iniciado
+  </Accordion>
+  
+  <Accordion title="Después de la actualización">
+    - Revisa los precios actualizados
+    - Exporta la nueva configuración
+    - Verifica que las cotizaciones reflejen los cambios
+    - Documenta el motivo del cambio
+  </Accordion>
+</AccordionGroup>
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Gestión de Precios" icon="dollar-sign" href="/admin/price-management">
+    Aprende a editar precios individuales y consultar el histórico.
+  </Card>
+  
+  <Card title="Sistema de Auditoría" icon="clipboard-list" href="/admin/audit-system">
+    Revisa los logs de todas las operaciones realizadas.
+  </Card>
+</CardGroup>

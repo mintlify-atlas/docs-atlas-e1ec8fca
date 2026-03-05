@@ -1,0 +1,609 @@
+---
+title: 'Price Calculator'
+description: 'Understanding age-based pricing, family structure pricing, and calculation examples'
+icon: 'calculator'
+---
+
+## How Pricing Works
+
+Cotizador Online OSPADEP calculates healthcare plan pricing based on multiple factors including provider-specific pricing structures, age brackets, and family composition. Each provider uses a different calculation method.
+
+## Pricing Factors
+
+<CardGroup cols={3}>
+  <Card title="Age-Based Pricing" icon="calendar">
+    Each family member is placed in an age bracket. Older age brackets typically cost more.
+  </Card>
+  <Card title="Family Structure" icon="users">
+    Different pricing for titular (primary), spouse/partner, children, and adult dependents.
+  </Card>
+  <Card title="Provider Structure" icon="building">
+    Each provider uses a different pricing template (estructura_compleja, plantilla_adultos_solo, etc.).
+  </Card>
+</CardGroup>
+
+## Pricing Structure Types
+
+The system uses different calculation methods based on the provider's `tipoEstructura`:
+
+### 1. Estructura Compleja (OMINT, OSPADEP Salud)
+
+Provides special pricing for children and differentiates between first child and additional children.
+
+```javascript
+// OMINT Structure
+{
+  "preciosPorEdad": {
+    "0-25": {
+      "adultoConyugue": 92859,    // Adults and spouse
+      "hijo1Menor": 80877,         // First child under 25
+      "hijo2MasMenores": 69932     // 2nd+ children under 25
+    }
+  }
+}
+```
+
+**Calculation Logic**:
+
+```javascript
+function calcularPrecioFinalOMINT(plan, composicion, edadTitular, edadPareja) {
+  let precioTotal = 0;
+  
+  // 1. Titular (primary holder)
+  const grupoTitular = determinarGrupoEtario(edadTitular); // "0-25", "26-35", etc.
+  precioTotal += plan.preciosPorEdad[grupoTitular].adultoConyugue;
+  
+  // 2. Spouse/Partner (if applicable)
+  if (composicion.tienePareja && edadPareja) {
+    const grupoPareja = determinarGrupoEtario(edadPareja);
+    precioTotal += plan.preciosPorEdad[grupoPareja].adultoConyugue;
+  }
+  
+  // 3. First child under 25
+  if (todosLosHijos.length > 0) {
+    precioTotal += plan.preciosPorEdad[grupoTitular].hijo1Menor;
+    
+    // 4. Additional children under 25
+    if (todosLosHijos.length > 1) {
+      const hijosAdicionales = todosLosHijos.length - 1;
+      precioTotal += plan.preciosPorEdad[grupoTitular].hijo2MasMenores * hijosAdicionales;
+    }
+  }
+  
+  // 5. Children 25+ charged as adults
+  composicion.mayores.forEach(edadHijo => {
+    if (edadHijo >= 25) {
+      const grupoHijo = determinarGrupoEtario(edadHijo);
+      precioTotal += plan.preciosPorEdad[grupoHijo].adultoConyugue;
+    }
+  });
+  
+  return Math.round(precioTotal);
+}
+```
+
+**Example Calculation - OMINT Plan 6500**:
+
+Family: Parent (32), Spouse (30), Child 1 (8), Child 2 (5)
+
+```javascript
+// Parent age 32 → grupo "26-35" → $227,182
+precioTotal = 227182;
+
+// Spouse age 30 → grupo "26-35" → $227,182
+precioTotal += 227182; // Now: $454,364
+
+// Child 1 age 8 → hijo1Menor → $138,785
+precioTotal += 138785; // Now: $593,149
+
+// Child 2 age 5 → hijo2MasMenores → $120,514
+precioTotal += 120514; // Now: $713,663
+
+// TOTAL: $713,663 per month
+```
+
+### 2. Plantilla Adultos Solo (Swiss Medical)
+
+All family members charged at full adult rates - **NO child discounts**.
+
+```javascript
+// Swiss Medical Structure
+{
+  "preciosPorEdad": {
+    "≤65": 332704,  // Everyone 65 and under
+    ">65": 965409   // Everyone over 65
+  }
+}
+```
+
+**Calculation Logic**:
+
+```javascript
+function calcularPrecioFinalSwiss(plan, composicion, edadTitular, edadPareja) {
+  let precioTotal = 0;
+  
+  // 1. Titular - 100% of price
+  const grupoTitular = edad <= 65 ? "≤65" : ">65";
+  precioTotal += plan.preciosPorEdad[grupoTitular] * 1.00; // 100%
+  
+  // 2. Spouse - 100% of price (NO discount)
+  if (composicion.tienePareja) {
+    const grupoPareja = edadPareja <= 65 ? "≤65" : ">65";
+    precioTotal += plan.preciosPorEdad[grupoPareja] * 1.00; // 100%
+  }
+  
+  // 3. ALL children - 100% of adult price (NO child discount!)
+  composicion.menores.forEach(edadMenor => {
+    const grupoMenor = edadMenor <= 65 ? "≤65" : ">65";
+    precioTotal += plan.preciosPorEdad[grupoMenor] * 1.00; // 100% as adult
+  });
+  
+  // 4. Adult children - 100% of price
+  composicion.mayores.forEach(edadHijo => {
+    const grupoHijo = edadHijo <= 65 ? "≤65" : ">65";
+    precioTotal += plan.preciosPorEdad[grupoHijo] * 1.00; // 100%
+  });
+  
+  return Math.round(precioTotal);
+}
+```
+
+**Example Calculation - Swiss Medical PO64**:
+
+Same family: Parent (32), Spouse (30), Child 1 (8), Child 2 (5)
+
+```javascript
+// Parent age 32 → grupo "≤65" → $332,704
+precioTotal = 332704;
+
+// Spouse age 30 → grupo "≤65" → $332,704
+precioTotal += 332704; // Now: $665,408
+
+// Child 1 age 8 → grupo "≤65" → $332,704 (FULL PRICE!)
+precioTotal += 332704; // Now: $998,112
+
+// Child 2 age 5 → grupo "≤65" → $332,704 (FULL PRICE!)
+precioTotal += 332704; // Now: $1,330,816
+
+// TOTAL: $1,330,816 per month
+```
+
+<Warning>
+  **Critical Difference**: Swiss Medical charges children at full adult rates. In this example, the same family pays **$1,330,816** with Swiss Medical vs **$713,663** with OMINT - nearly double!
+</Warning>
+
+### 3. Estructura Matrimonio Hijos (MEDIFE)
+
+Complex structure with separate pricing for individuals, couples, and differentiated child pricing.
+
+```javascript
+// MEDIFE Structure
+{
+  "precios": {
+    "individual": {
+      "0-29": 146277,
+      "30-39": 185174,
+      // ... more age brackets
+    },
+    "conyuge": {
+      // Partner pricing (usually discounted)
+    },
+    "matrimonio": {
+      // Couple package pricing
+    },
+    "hijos": {
+      "primerHijo": 124323,      // First child
+      "segundoHijo": 90869,      // Second child (more discount)
+      "hijoAdulto": 146668,      // Adult child 21-29
+      "familiarCargo": 397819    // Other dependent
+    }
+  }
+}
+```
+
+**Calculation Logic**:
+
+```javascript
+function calcularPrecioFinalMedife(plan, composicion, edadTitular, edadPareja) {
+  let precioTotal = 0;
+  
+  if (composicion.tienePareja && edadPareja) {
+    // Use matrimonio (couple) pricing
+    const grupoTitular = determinarGrupoEtarioMedife(edadTitular);
+    precioTotal = plan.precios.matrimonio[grupoTitular];
+  } else {
+    // Use individual pricing
+    const grupoTitular = determinarGrupoEtarioMedife(edadTitular);
+    precioTotal = plan.precios.individual[grupoTitular];
+  }
+  
+  // Add children with differentiated pricing
+  if (composicion.menores.length > 0) {
+    precioTotal += plan.precios.hijos.primerHijo; // First child
+    if (composicion.menores.length > 1) {
+      precioTotal += plan.precios.hijos.segundoHijo; // Second child
+      // Additional children also use segundoHijo rate
+      if (composicion.menores.length > 2) {
+        precioTotal += plan.precios.hijos.segundoHijo * (composicion.menores.length - 2);
+      }
+    }
+  }
+  
+  // Adult children (21-29)
+  composicion.mayores.forEach(edad => {
+    if (edad >= 21 && edad <= 29) {
+      precioTotal += plan.precios.hijos.hijoAdulto;
+    } else if (edad > 29) {
+      // Over 29: use individual pricing for their age
+      const grupoHijo = determinarGrupoEtarioMedife(edad);
+      precioTotal += plan.precios.individual[grupoHijo];
+    }
+  });
+  
+  return Math.round(precioTotal);
+}
+```
+
+**Example Calculation - MEDIFE Plan Plata**:
+
+Family: Parent (32), Spouse (30), Child 1 (8), Child 2 (5)
+
+```javascript
+// Couple package: age 32 → grupo "30-39" → $338,143
+precioTotal = 338143;
+
+// First child → primerHijo → $124,323
+precioTotal += 124323; // Now: $462,466
+
+// Second child → segundoHijo → $90,869
+precioTotal += 90869; // Now: $553,335
+
+// TOTAL: $553,335 per month
+```
+
+### 4. Plantilla Adultos Simple (Activa Salud)
+
+Most plans use single pricing for all ages.
+
+```javascript
+// Activa Salud Structure
+{
+  "preciosPorEdad": {
+    "≤100": 76876  // Single price for everyone
+  }
+}
+
+// Some plans have 2 age brackets
+{
+  "preciosPorEdad": {
+    "≤65": 88704,
+    ">65": 133266
+  }
+}
+```
+
+**Example Calculation - Activa AS 25**:
+
+Family: Parent (32), Spouse (30), Child 1 (8), Child 2 (5)
+
+```javascript
+// Everyone pays the same price
+// 4 people × $76,876 = $307,504
+
+precioTotal = 76876 * 4; // $307,504 per month
+```
+
+## Age Bracket Reference
+
+### OMINT Age Groups
+
+```javascript
+function determinarGrupoEtario(edad) {
+  if (edad <= 25) return "0-25";
+  if (edad <= 35) return "26-35";
+  if (edad <= 54) return "36-54";
+  if (edad <= 59) return "55-59";
+  return "60+";
+}
+```
+
+| Age | Group | Price Multiplier |
+|-----|-------|------------------|
+| 0-25 | 0-25 | Base |
+| 26-35 | 26-35 | ~1.4x |
+| 36-54 | 36-54 | ~1.7x |
+| 55-59 | 55-59 | ~2.8x |
+| 60+ | 60+ | ~4.2x |
+
+### Swiss Medical Age Groups
+
+```javascript
+function determinarGrupoEtarioSwiss(edad) {
+  return edad <= 65 ? "≤65" : ">65";
+}
+```
+
+| Age | Group | Price Multiplier |
+|-----|-------|------------------|
+| 0-65 | ≤65 | Base |
+| 66+ | >65 | ~2.9x |
+
+<Note>
+  The significant jump at age 66 for Swiss Medical reflects higher healthcare costs for seniors.
+</Note>
+
+### MEDIFE Age Groups
+
+```javascript
+function determinarGrupoEtarioMedife(edad) {
+  if (edad <= 29) return "0-29";
+  if (edad <= 39) return "30-39";
+  if (edad <= 49) return "40-49";
+  if (edad <= 59) return "50-59";
+  return "60+";
+}
+```
+
+| Age | Group | Typical Multiplier |
+|-----|-------|--------------------|
+| 0-29 | 0-29 | Base |
+| 30-39 | 30-39 | ~1.3x |
+| 40-49 | 40-49 | ~1.6x |
+| 50-59 | 50-59 | ~2.5x |
+| 60+ | 60+ | ~2.7x |
+
+### OSPADEP Salud Age Groups (Most Granular)
+
+```javascript
+function determinarGrupoEtarioOspadep(edad) {
+  if (edad <= 27) return "18-27";
+  if (edad <= 35) return "28-35";
+  if (edad <= 40) return "36-40";
+  if (edad <= 45) return "41-45";
+  if (edad <= 50) return "46-50";
+  if (edad <= 55) return "51-55";
+  if (edad <= 64) return "56-64";
+  return "65+";
+}
+```
+
+OSPADEP Salud uses 8 age brackets for more precise age-based pricing.
+
+## Real Calculation Examples
+
+### Example 1: Young Couple
+
+**Family**: Adult 1 (28), Adult 2 (26)
+
+<Tabs>
+  <Tab title="OMINT Plan 6500">
+    ```javascript
+    // Adult 1: age 28 → grupo "26-35" → $227,182
+    // Adult 2: age 26 → grupo "26-35" → $227,182
+    
+    Total: $454,364/month
+    ```
+  </Tab>
+  <Tab title="Swiss Medical PO64">
+    ```javascript
+    // Adult 1: age 28 → grupo "≤65" → $332,704
+    // Adult 2: age 26 → grupo "≤65" → $332,704
+    
+    Total: $665,408/month
+    
+    // 46% more expensive than OMINT for same couple
+    ```
+  </Tab>
+  <Tab title="MEDIFE Plata">
+    ```javascript
+    // Couple package: age 28 → grupo "0-29" → $274,043
+    
+    Total: $274,043/month
+    
+    // Most affordable for young couples!
+    ```
+  </Tab>
+  <Tab title="Activa AS 300">
+    ```javascript
+    // Adult 1: age 28 → grupo "≤65" → $88,704
+    // Adult 2: age 26 → grupo "≤65" → $88,704
+    
+    Total: $177,408/month
+    
+    // Lowest price option
+    ```
+  </Tab>
+</Tabs>
+
+### Example 2: Family with Young Children
+
+**Family**: Adult 1 (35), Adult 2 (33), Child (6), Child (3)
+
+<Tabs>
+  <Tab title="OMINT Plan 6500">
+    ```javascript
+    // Adult 1: age 35 → grupo "26-35" → $227,182
+    // Adult 2: age 33 → grupo "26-35" → $227,182
+    // Child 1: age 6 → hijo1Menor → $138,785
+    // Child 2: age 3 → hijo2MasMenores → $120,514
+    
+    Total: $713,663/month
+    
+    // Children get 39% and 47% discounts respectively
+    ```
+  </Tab>
+  <Tab title="Swiss Medical PO64">
+    ```javascript
+    // Adult 1: age 35 → grupo "≤65" → $332,704
+    // Adult 2: age 33 → grupo "≤65" → $332,704
+    // Child 1: age 6 → grupo "≤65" → $332,704 (FULL PRICE)
+    // Child 2: age 3 → grupo "≤65" → $332,704 (FULL PRICE)
+    
+    Total: $1,330,816/month
+    
+    // 87% MORE expensive than OMINT for families!
+    ```
+  </Tab>
+  <Tab title="MEDIFE Plata">
+    ```javascript
+    // Couple: age 35 → grupo "30-39" → $338,143
+    // Child 1: primerHijo → $124,323
+    // Child 2: segundoHijo → $90,869
+    
+    Total: $553,335/month
+    
+    // Good value for families
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  **Key Insight**: Swiss Medical can be **1.87x more expensive** for families with children compared to OMINT due to no child discounts. Always compare total family costs, not just adult pricing!
+</Warning>
+
+### Example 3: Senior Individual
+
+**Family**: Adult (67)
+
+<Tabs>
+  <Tab title="OMINT Plan 6500">
+    ```javascript
+    // Adult: age 67 → grupo "60+" → $664,100
+    
+    Total: $664,100/month
+    ```
+  </Tab>
+  <Tab title="Swiss Medical PO64">
+    ```javascript
+    // Adult: age 67 → grupo ">65" → $965,409
+    
+    Total: $965,409/month
+    
+    // 45% more expensive than OMINT for seniors
+    ```
+  </Tab>
+  <Tab title="OSPADEP OS300 (Afiliado)">
+    ```javascript
+    // Adult: age 67 → grupo "65+" → $281,261
+    
+    Total: $281,261/month
+    
+    // Best value for OSPADEP members!
+    ```
+  </Tab>
+</Tabs>
+
+## Pricing Templates
+
+The system uses pricing templates to standardize calculations:
+
+```javascript
+// Template WITHOUT discounts (Swiss Medical, Activa Salud)
+const plantillaSinDescuentos = {
+  capitaTitular: 1.00,    // 100% - Primary holder
+  segundaCapita: 1.00,    // 100% - Spouse (NO discount)
+  menor: 1.00             // 100% - Children (NO discount)
+};
+
+// Template WITH discounts (for future providers)
+const plantillaPorcentual = {
+  capitaTitular: 1.00,    // 100% - Primary holder
+  segundaCapita: 0.75,    // 75% - Spouse (25% discount)
+  menor: 0.50             // 50% - Children (50% discount)
+};
+```
+
+<Note>
+  OMINT uses a custom estructura_compleja that doesn't follow the percentage template - it has fixed prices for each role (adultoConyugue, hijo1Menor, hijo2MasMenores).
+</Note>
+
+## External Pricing Updates
+
+Prices are loaded from an external JSON file for easy updates:
+
+```javascript
+// Loading external prices
+async function cargarPreciosExternos() {
+  try {
+    const response = await fetch('precios-data.json');
+    if (response.ok) {
+      const data = await response.json();
+      prestadoresData = data.prestadores;
+      preciosExternosDisponibles = true;
+      console.log('✅ Precios cargados desde archivo externo:', data.version);
+      return true;
+    }
+  } catch (error) {
+    console.warn('⚠️ No se pudo cargar precios externos, usando precios internos');
+    return false;
+  }
+}
+```
+
+The `precios-data.json` file includes:
+- **version**: Current pricing version (e.g., "2026-02")
+- **fechaActualizacion**: Last update date
+- **prestadores**: All provider data with plans and pricing
+- **historialCambios**: Change log of all price updates
+
+### Current Pricing Version
+
+As of the latest update (February 2026):
+
+```json
+{
+  "version": "2026-02",
+  "fechaActualizacion": "2026-01-16"
+}
+```
+
+### Recent Price Changes
+
+```json
+[
+  {
+    "fecha": "2026-01-16",
+    "descripcion": "Actualización FEBRERO 2026: OSPADEP SALUD +2.8%, ACTIVA SALUD +2.8%, OMINT +2.55%, MEDIFE (nuevos precios), SWISS MEDICAL (todos) +2.8%",
+    "autor": "Panel Admin"
+  }
+]
+```
+
+## Best Practices for Price Comparisons
+
+<Steps>
+  <Step title="Compare Total Family Cost">
+    Don't just look at individual adult pricing. Calculate the total for your entire family.
+  </Step>
+  
+  <Step title="Consider Age Progression">
+    Remember prices increase as you age. A plan that's affordable now may be expensive in 10 years.
+  </Step>
+  
+  <Step title="Factor in Children">
+    If you have or plan to have children, providers with child discounts (OMINT, MEDIFE) offer better value than those charging adult rates (Swiss Medical).
+  </Step>
+  
+  <Step title="Check Coverage vs Price">
+    Don't choose based solely on price. Verify the plan includes the coverage you need.
+  </Step>
+</Steps>
+
+## Summary
+
+<CardGroup cols={2}>
+  <Card title="Best for Families" icon="users">
+    **OMINT** and **MEDIFE** offer significant child discounts
+  </Card>
+  <Card title="Best for Couples" icon="heart">
+    **MEDIFE matrimonio** packages offer good value for couples
+  </Card>
+  <Card title="Best for Seniors" icon="user-clock">
+    **OSPADEP Salud** (for afiliados) provides the best senior pricing
+  </Card>
+  <Card title="Simplest Pricing" icon="calculator">
+    **Activa Salud** uses straightforward per-person pricing
+  </Card>
+</CardGroup>
+
+For detailed provider and plan comparisons, see [Plan Selection Guide](/user-guide/plan-selection). For the step-by-step quotation process, see [Quotation Flow](/user-guide/quotation-flow).

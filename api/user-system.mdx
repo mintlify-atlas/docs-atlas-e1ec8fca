@@ -1,0 +1,360 @@
+---
+title: 'UserManager'
+description: 'User session management and activity auditing API reference'
+---
+
+## Overview
+
+The `UserManager` class handles user sessions, authentication, role management, and comprehensive activity auditing for the OSPADEP platform.
+
+## Constructor
+
+```javascript
+const userManager = new UserManager();
+```
+
+Initializes with:
+- Current user session restoration
+- Automatic sync interval (if enabled)
+- Page load activity logging
+
+---
+
+## Authentication Methods
+
+### login()
+
+Authenticates a user and creates a session.
+
+```javascript
+await userManager.login(password, username)
+```
+
+<ParamField path="password" type="string" required>
+  User password for authentication
+</ParamField>
+
+<ParamField path="username" type="string">
+  Optional username (auto-generated if not provided)
+</ParamField>
+
+<ResponseField name="result" type="object">
+  Login result containing:
+  - `success`: Boolean (`true`)
+  - `user`: Complete user session object
+</ResponseField>
+
+**User Object Structure:**
+
+<ResponseField name="user" type="object">
+  <ResponseField name="id" type="string">
+    Unique user identifier
+  </ResponseField>
+  
+  <ResponseField name="role" type="string">
+    User role: `super_admin`, `admin`, or `user`
+  </ResponseField>
+  
+  <ResponseField name="loginTime" type="string">
+    ISO timestamp of login
+  </ResponseField>
+  
+  <ResponseField name="lastActivity" type="string">
+    ISO timestamp of last activity
+  </ResponseField>
+  
+  <ResponseField name="sessionId" type="string">
+    Unique session identifier
+  </ResponseField>
+</ResponseField>
+
+**Example:**
+
+```javascript
+try {
+  const result = await userManager.login('ospadep2024', 'admin_user');
+  console.log('Session ID:', result.user.sessionId);
+  console.log('Role:', result.user.role);
+} catch (error) {
+  console.error('Login failed:', error.message);
+}
+```
+
+**Role Detection:**
+
+- `APP_CONFIG.SUPER_ADMIN_PASSWORD` → `super_admin` role
+- `'ospadep2024'` → `admin` role
+- Invalid password → Throws error
+
+---
+
+### logout()
+
+Ends the current session and clears stored data.
+
+```javascript
+userManager.logout()
+```
+
+Actions performed:
+- Logs logout activity with session duration
+- Clears `currentUser`
+- Removes session from localStorage
+- Stops auto-sync interval
+
+**Example:**
+
+```javascript
+userManager.logout();
+console.log('User logged out successfully');
+```
+
+---
+
+## Session Management
+
+### getCurrentUser()
+
+Returns the currently logged-in user object.
+
+```javascript
+const user = userManager.getCurrentUser()
+```
+
+<ResponseField name="user" type="object | null">
+  Current user object or `null` if not logged in
+</ResponseField>
+
+---
+
+### isLoggedIn()
+
+Checks if a user is currently logged in with a valid session.
+
+```javascript
+const loggedIn = userManager.isLoggedIn()
+```
+
+<ResponseField name="loggedIn" type="boolean">
+  `true` if user is logged in and session is valid
+</ResponseField>
+
+---
+
+### isSuperAdmin()
+
+Checks if the current user has super admin privileges.
+
+```javascript
+const isSuperAdmin = userManager.isSuperAdmin()
+```
+
+<ResponseField name="isSuperAdmin" type="boolean">
+  `true` if user role is `super_admin`
+</ResponseField>
+
+---
+
+### isAdmin()
+
+Checks if the current user has admin or super admin privileges.
+
+```javascript
+const isAdmin = userManager.isAdmin()
+```
+
+<ResponseField name="isAdmin" type="boolean">
+  `true` if user role is `admin` or `super_admin`
+</ResponseField>
+
+---
+
+### isSessionValid()
+
+Validates the current session based on timeout.
+
+```javascript
+const valid = userManager.isSessionValid(user)
+```
+
+<ParamField path="user" type="object">
+  Optional user object (defaults to currentUser)
+</ParamField>
+
+<ResponseField name="valid" type="boolean">
+  `true` if session age is less than `APP_CONFIG.SESSION_TIMEOUT`
+</ResponseField>
+
+---
+
+### updateLastActivity()
+
+Updates the last activity timestamp for the current session.
+
+```javascript
+userManager.updateLastActivity()
+```
+
+Automatically saves the updated session to localStorage.
+
+---
+
+### getSessionDuration()
+
+Calculates the duration of the current session.
+
+```javascript
+const duration = userManager.getSessionDuration()
+```
+
+<ResponseField name="duration" type="number">
+  Session duration in minutes
+</ResponseField>
+
+---
+
+### generateSessionId()
+
+Generates a unique session identifier.
+
+```javascript
+const sessionId = userManager.generateSessionId()
+```
+
+<ResponseField name="sessionId" type="string">
+  Unique base-36 encoded session ID
+</ResponseField>
+
+---
+
+## Audit System
+
+### logActivity()
+
+Logs user activity for audit purposes.
+
+```javascript
+userManager.logActivity(action, details)
+```
+
+<ParamField path="action" type="string" required>
+  Action identifier (e.g., `USER_LOGIN`, `PRICE_UPDATE`, `PAGE_LOAD`)
+</ParamField>
+
+<ParamField path="details" type="object">
+  Optional additional details about the action
+</ParamField>
+
+**Log Entry Structure:**
+
+```javascript
+{
+  id: 1709123456789,
+  action: 'PRICE_UPDATE',
+  userId: 'admin_user',
+  userRole: 'admin',
+  timestamp: '2026-03-05T10:30:45.123Z',
+  details: { prestador: 'omint', increase: 2.5 },
+  sessionId: 'abc123xyz',
+  url: 'https://app.ospadep.com/admin',
+  userAgent: 'Mozilla/5.0...'
+}
+```
+
+**Example:**
+
+```javascript
+userManager.logActivity('PRICE_UPDATE', {
+  prestador: 'OMINT',
+  percentage: 2.5,
+  plansAffected: 5
+});
+```
+
+---
+
+### saveToAuditLog()
+
+Saves a log entry to the audit log with rotation.
+
+```javascript
+userManager.saveToAuditLog(entry)
+```
+
+<ParamField path="entry" type="object" required>
+  Complete log entry object
+</ParamField>
+
+Maintains only the most recent `APP_CONFIG.MAX_AUDIT_RECORDS` entries (default: 1000).
+
+---
+
+## Storage Keys
+
+### Session Storage
+
+```javascript
+'ospadep_user_session' // Current user session
+```
+
+### Audit Log Storage
+
+```javascript
+'ospadep_audit_log' // Array of audit log entries
+```
+
+---
+
+## Configuration
+
+Session behavior is controlled by `APP_CONFIG`:
+
+- `SESSION_TIMEOUT`: Session expiry (default: 30 minutes)
+- `AUTO_SYNC`: Enable automatic sync (default: `true`)
+- `MAX_AUDIT_RECORDS`: Max audit entries (default: 1000)
+- `LOG_ALL_ACTIONS`: Log all activities (default: `true`)
+
+---
+
+## Common Activity Actions
+
+- `PAGE_LOAD`: Page navigation
+- `USER_LOGIN`: Successful login
+- `LOGIN_FAILED`: Failed login attempt
+- `USER_LOGOUT`: User logout
+- `PRICE_UPDATE`: Price changes
+- `PLAN_CREATED`: New plan creation
+- `QUOTE_GENERATED`: Quote generation
+- `EXPORT_DATA`: Data export
+
+---
+
+## Example: Complete Login Flow
+
+```javascript
+const userManager = new UserManager();
+
+try {
+  // Login
+  const result = await userManager.login('ospadep2024', 'john_admin');
+  
+  // Check permissions
+  if (userManager.isAdmin()) {
+    console.log('Admin access granted');
+    
+    // Log activity
+    userManager.logActivity('ADMIN_PANEL_ACCESS', {
+      section: 'price_management'
+    });
+  }
+  
+  // Check session
+  console.log('Session duration:', userManager.getSessionDuration(), 'minutes');
+  
+  // Logout
+  userManager.logout();
+  
+} catch (error) {
+  console.error('Error:', error.message);
+}
+```

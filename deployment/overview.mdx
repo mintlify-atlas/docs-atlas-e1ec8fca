@@ -1,0 +1,228 @@
+---
+title: 'Deployment Overview'
+description: 'Complete guide to deploying Cotizador Online OSPADEP to production'
+---
+
+## Deployment Architecture
+
+Cotizador Online OSPADEP is a frontend-heavy application with three deployment strategies to fit different needs:
+
+- **Option 1: Quick Deploy** - Current static application with security improvements (recommended to start)
+- **Option 2: Hybrid Solution** - Frontend + simple backend for data persistence (medium-term)
+- **Option 3: Enterprise Solution** - Full-stack system with all features (long-term)
+
+<Note>
+This guide focuses on **Option 1** as the recommended starting point. You can migrate to more advanced options as your needs grow.
+</Note>
+
+## Production Readiness Checklist
+
+Before deploying to production, ensure these critical items are completed:
+
+<Steps>
+  <Step title="Configure Production Environment">
+    Update `config.js` to set production mode:
+    ```javascript
+    ENVIRONMENT: 'production'
+    ```
+  </Step>
+
+  <Step title="Secure Admin Password">
+    Generate a SHA-256 hash of your secure password:
+    ```bash
+    echo -n "your_secure_password" | sha256sum
+    ```
+    Update the hash in `config.js`:
+    ```javascript
+    ADMIN_PASSWORD_HASH: 'your_generated_hash_here'
+    ```
+  </Step>
+
+  <Step title="Enable HTTPS">
+    Ensure your hosting platform provides automatic HTTPS (Netlify, Vercel, and GitHub Pages all do).
+  </Step>
+
+  <Step title="Configure Session Timeout">
+    Set appropriate session timeout in production (default: 30 minutes):
+    ```javascript
+    SESSION_TIMEOUT: 30 // minutes
+    ```
+  </Step>
+
+  <Step title="Test Security Features">
+    Verify:
+    - Password hashing works correctly
+    - Login attempt limits (3 attempts)
+    - 15-minute lockout after failed attempts
+    - Session timeout enforcement
+  </Step>
+</Steps>
+
+## Deployment Strategies
+
+### Option 1: Quick Deploy (Recommended)
+
+**Best for:** Getting started quickly with minimal infrastructure
+
+**Features:**
+- Static file hosting
+- Automatic HTTPS
+- Frontend-only (localStorage for data)
+- No backend required
+
+**Cost:** $0-10 USD/month
+
+**Platforms:** Netlify, Vercel, GitHub Pages
+
+### Option 2: Hybrid Solution
+
+**Best for:** Medium-term growth with data persistence needs
+
+**Features:**
+- Current frontend + Node.js backend
+- SQLite or PostgreSQL database
+- API endpoints for price management
+- Automatic backups
+
+**Cost:** $5-30 USD/month
+
+**Platforms:** Railway, Render, Heroku (backend) + Netlify (frontend)
+
+### Option 3: Enterprise Solution
+
+**Best for:** Large-scale operations with advanced requirements
+
+**Features:**
+- React/Vue.js frontend
+- Node.js + PostgreSQL backend
+- OAuth authentication
+- Real-time monitoring
+- Disaster recovery
+
+**Cost:** $50-200 USD/month + development costs
+
+**Platforms:** AWS, Google Cloud, Azure
+
+## Quick Start Deployment
+
+<Steps>
+  <Step title="Prepare Your Repository">
+    Initialize git and push to GitHub:
+    ```bash
+    git init
+    git add .
+    git commit -m "Initial commit for production"
+    git push origin main
+    ```
+  </Step>
+
+  <Step title="Choose Hosting Platform">
+    Select your preferred platform:
+    - **Netlify** (recommended for beginners)
+    - **Vercel** (excellent for modern frameworks)
+    - **GitHub Pages** (good for simple sites)
+  </Step>
+
+  <Step title="Deploy">
+    Follow the platform-specific instructions in the [Hosting Options](/deployment/hosting-options) guide.
+  </Step>
+
+  <Step title="Configure Custom Domain">
+    Set up your custom domain (e.g., cotizador.ospadep.com) through your hosting provider's dashboard.
+  </Step>
+
+  <Step title="Test in Production">
+    Verify all functionality works correctly:
+    - Admin login
+    - Price updates
+    - Plan comparisons
+    - Security features
+  </Step>
+</Steps>
+
+## Cost Estimation
+
+### Initial Investment
+
+| Item | Cost |
+|------|------|
+| Domain name | $10-15 USD/year |
+| Premium hosting (optional) | $0-10 USD/month |
+| SSL certificate | Free (included) |
+| **Total** | **~$50 USD first year** |
+
+### Ongoing Costs (Option 1)
+
+- **Monthly:** $10-20 USD
+- **Annual domain renewal:** $10-15 USD
+- **Future development:** $2,000-5,000 USD (when needed)
+
+<Warning>
+Do not commit sensitive configuration files (`.env`, credentials) to your repository. Use environment variables through your hosting platform instead.
+</Warning>
+
+## Next Steps
+
+1. Review [Hosting Options](/deployment/hosting-options) for detailed platform-specific guides
+2. Complete the [Security Checklist](/deployment/security) to protect your application
+3. Configure [Environment Variables](/deployment/configuration) for production
+4. Set up monitoring and backups
+
+## Monitoring & Maintenance
+
+### Key Metrics to Track
+
+- **Security:** Login attempts, successful logins, blocked access
+- **Usage:** Price changes, active users, page views
+- **Performance:** Load times, errors, uptime
+- **Availability:** Server uptime percentage
+
+### Recommended Tools
+
+**Free:**
+- Google Analytics
+- Netlify Analytics
+- Browser DevTools
+
+**Paid:**
+- Datadog (monitoring)
+- Sentry (error tracking)
+- New Relic (performance)
+
+## Support Plans
+
+<Tabs>
+  <Tab title="Basic">
+    **$100-300 USD/month**
+    - 24/7 monitoring
+    - 24-hour response time
+    - Daily backups
+    - Email support
+  </Tab>
+  
+  <Tab title="Standard">
+    **$300-600 USD/month**
+    - Proactive monitoring
+    - 4-hour response time
+    - Automatic updates
+    - Priority support
+  </Tab>
+  
+  <Tab title="Premium">
+    **$600+ USD/month**
+    - Dedicated support
+    - 1-hour response time
+    - Preventive maintenance
+    - Phone + email support
+  </Tab>
+</Tabs>
+
+## Recommended Timeline
+
+**Week 1:** Implement security improvements and deploy to Netlify
+
+**Month 1:** Configure custom domain, set up monitoring, implement basic backups
+
+**Months 3-6:** Evaluate backend needs, consider migration to Option 2 if usage grows
+
+**Year 1+:** Consider mobile app and enterprise features based on user feedback

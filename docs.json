@@ -1,122 +1,91 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Cotizador Online OSPADEP",
+  "theme": "palm",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#1053F3",
+    "light": "#64748b",
+    "dark": "#0c3db8"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/dantemoss/Cotizador-Online-OSPADEP"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/dantemoss/Cotizador-Online-OSPADEP"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "features"]
+          },
+          {
+            "group": "User Guide",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "user-guide/quotation-flow",
+              "user-guide/plan-selection",
+              "user-guide/price-calculator"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Administration",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "admin/admin-panel",
+              "admin/price-management",
+              "admin/bulk-updates",
+              "admin/audit-system"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Advanced Features",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "advanced/multi-user-system",
+              "advanced/authentication",
+              "advanced/real-time-sync",
+              "advanced/data-management"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Deployment",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "deployment/overview",
+              "deployment/hosting-options",
+              "deployment/security",
+              "deployment/configuration"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Core Systems",
             "pages": [
-              "api-reference/introduction"
+              "api/auth-system",
+              "api/user-system",
+              "api/price-system",
+              "api/config"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Data Structures",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/pricing-data",
+              "api/healthcare-plans",
+              "api/user-roles"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

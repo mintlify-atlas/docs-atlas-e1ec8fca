@@ -1,0 +1,560 @@
+---
+title: 'Plan Selection Guide'
+description: 'Understanding healthcare plans, providers, and how to choose the right coverage for your needs'
+icon: 'clipboard-list'
+---
+
+## Overview
+
+Cotizador Online OSPADEP provides access to plans from multiple leading healthcare providers (prestadores) in Argentina. Each provider offers different plan tiers, networks, and pricing structures. This guide helps you understand the differences and choose the right plan for your needs.
+
+## Available Providers
+
+<Tabs>
+  <Tab title="OMINT">
+    ### OMINT Plans
+
+    OMINT offers comprehensive private healthcare coverage with a tiered plan structure based on provider network levels.
+
+    <AccordionGroup>
+      <Accordion title="PLAN 2500" icon="dollar-sign">
+        **Price Range**: $92,859 - $413,701 (depending on age)
+
+        **Target Audience**: Budget-conscious families and individuals
+
+        **Key Features**:
+        - Plan económico OMINT
+        - Red de prestadores nivel 2500
+        - Consultas médicas
+        - Emergencias 24hs
+        - Estudios básicos
+        - Ideal para presupuestos ajustados
+
+        **Pricing Structure**: Age-based with special child rates
+        - Adults/Spouse: Full price based on age bracket
+        - First child under 25: Reduced rate (hijo1Menor)
+        - Additional children: Further discounted (hijo2MasMenores)
+      </Accordion>
+
+      <Accordion title="PLAN 4500" icon="dollar-sign">
+        **Price Range**: $125,039 - $556,746 (depending on age)
+
+        **Target Audience**: Families seeking balanced coverage
+
+        **Key Features**:
+        - Plan intermedio OMINT
+        - Red de prestadores nivel 4500
+        - Consultas médicas
+        - Emergencias 24hs
+        - Estudios de mediana complejidad
+        - Ideal para familias
+
+        **Best For**: Families who want more provider options than Plan 2500 without premium pricing.
+      </Accordion>
+
+      <Accordion title="PLAN 6500" icon="star">
+        **Price Range**: $158,759 - $664,100 (depending on age)
+
+        **Recommended Plan** ⭐
+
+        **Target Audience**: Those seeking comprehensive coverage
+
+        **Key Features**:
+        - Cobertura integral OMINT
+        - Red de prestadores nivel 6500
+        - Internación en habitación privada
+        - Consultas médicas sin límite
+        - Estudios de alta complejidad
+        - Emergencias 24hs
+        - Cobertura odontológica completa
+        - Medicina preventiva
+
+        **Best For**: Families who want full coverage including dental and preventive medicine.
+      </Accordion>
+
+      <Accordion title="PLAN 8500" icon="crown">
+        **Price Range**: $272,996 - $909,903 (depending on age)
+
+        **Target Audience**: Premium coverage seekers
+
+        **Key Features**:
+        - Plan premium OMINT
+        - Red de prestadores nivel 8500
+        - Internación en habitación privada
+        - Consultas médicas sin límite
+        - Estudios de alta complejidad
+        - Emergencias 24hs
+        - Cobertura odontológica completa
+        - Medicina preventiva premium
+
+        **Best For**: Those who want access to the widest network of top-tier providers.
+      </Accordion>
+
+      <Accordion title="PLAN COMUNIDAD SIN COPAGO" icon="users">
+        **Price Range**: $94,221 - $418,940 (depending on age)
+
+        **Target Audience**: Young families prioritizing no copays
+
+        **Key Features**:
+        - Plan comunitario OMINT
+        - Sin copagos en consultas (No copays)
+        - Red de prestadores comunitarios
+        - Cobertura básica integral
+        - Emergencias 24hs
+        - Estudios básicos incluidos
+        - Ideal para familias jóvenes
+
+        **Best For**: Families who visit doctors frequently and want to avoid copay costs.
+      </Accordion>
+    </AccordionGroup>
+
+    ### OMINT Age Brackets
+
+    ```javascript
+    // OMINT uses 5 age groups
+    "0-25": Lower pricing for young adults
+    "26-35": Early career professionals
+    "36-54": Mid-career pricing
+    "55-59": Pre-retirement pricing
+    "60+": Senior pricing
+    ```
+  </Tab>
+
+  <Tab title="Swiss Medical">
+    ### SWISS MEDICAL Plans
+
+    Swiss Medical offers premium coverage with simplified age-based pricing. **Important**: All family members are charged as adults - there are no child discounts.
+
+    <AccordionGroup>
+      <Accordion title="PLAN SB04" icon="dollar-sign">
+        **Price Structure**:
+        - ≤65 years: $218,812 per person
+        - >65 years: $598,367 per person
+
+        **Key Features**:
+        - Cobertura básica SWISS MEDICAL
+        - Red de prestadores SB04
+        - Consultas médicas
+        - Emergencias 24hs
+        - Estudios básicos
+        - Ideal para familias jóvenes
+
+        **Best For**: Young families without special medical needs.
+      </Accordion>
+
+      <Accordion title="PLAN PO62" icon="star">
+        **Price Structure**:
+        - ≤65 years: $277,459 per person
+        - >65 years: $806,229 per person
+
+        **Key Features**:
+        - Cobertura integral SWISS MEDICAL
+        - Red de prestadores PO62
+        - Consultas médicas sin límite
+        - Internación en habitación privada
+        - Emergencias 24hs
+        - Estudios de diagnóstico
+        - Cobertura odontológica
+
+        **Best For**: Those seeking comprehensive Swiss Medical coverage.
+      </Accordion>
+
+      <Accordion title="PLAN PO64" icon="crown">
+        **Price Structure**:
+        - ≤65 years: $332,704 per person
+        - >65 years: $965,409 per person
+
+        **Recommended Plan** ⭐
+
+        **Key Features**:
+        - Cobertura premium SWISS MEDICAL
+        - Red de prestadores PO64
+        - Consultas médicas sin límite
+        - Internación en habitación privada
+        - Emergencias 24hs prioritarias
+        - Estudios de alta complejidad
+        - Cobertura odontológica completa
+        - Medicina preventiva
+
+        **Best For**: Those who want the most comprehensive Swiss Medical coverage.
+      </Accordion>
+    </AccordionGroup>
+
+    <Warning>
+      **Important Pricing Note**: Swiss Medical charges all family members at full adult rates. Children are NOT discounted. This can make Swiss Medical expensive for families with multiple children compared to OMINT.
+    </Warning>
+
+    ### Swiss Medical Structure
+
+    ```javascript
+    // plantilla_adultos_solo - No child discounts
+    tipoEstructura: "plantilla_adultos_solo"
+    
+    // Only 2 age brackets
+    preciosPorEdad: {
+      "≤65": price,  // Everyone 65 and under
+      ">65": price   // Everyone over 65
+    }
+    
+    // Every family member pays 100% of capita price
+    capitaTitular: 1.00    // 100%
+    segundaCapita: 1.00    // 100%
+    menores: 1.00          // 100% (NOT 50%!)
+    ```
+  </Tab>
+
+  <Tab title="Activa Salud">
+    ### ACTIVA SALUD Plans
+
+    Activa Salud offers straightforward pricing with most plans using a single price per person.
+
+    <AccordionGroup>
+      <Accordion title="PLAN AS 25" icon="dollar-sign">
+        **Price**: $76,876 per person (all ages)
+
+        **Key Features**:
+        - Plan básico ACTIVA SALUD
+        - Consultas médicas básicas
+        - Emergencias 24hs
+        - Estudios de laboratorio
+        - Red de prestadores ACTIVA
+        - Ideal para jóvenes
+
+        **Best For**: Young, healthy individuals seeking basic coverage.
+      </Accordion>
+
+      <Accordion title="PLAN AS 300" icon="star">
+        **Price Structure**:
+        - ≤65 years: $88,704
+        - >65 years: $133,266
+
+        **Key Features**:
+        - Plan AS 300 ACTIVA SALUD
+        - Cobertura integral
+        - Emergencias 24hs
+        - Consultas ilimitadas
+        - Estudios diagnósticos
+        - Internación completa
+
+        **Best For**: Those seeking comprehensive coverage at competitive rates.
+      </Accordion>
+
+      <Accordion title="PLAN AS 700" icon="gem">
+        **Price**: $100,532 per person (all ages)
+
+        **Key Features**:
+        - Plan AS 700 ACTIVA SALUD
+        - Cobertura superior
+        - Todas las especialidades
+        - Cirugías complejas
+        - Medicina de alta complejidad
+        - Red premium
+
+        **Best For**: Those needing complex medical procedures.
+      </Accordion>
+
+      <Accordion title="PLAN AS 800" icon="crown">
+        **Price**: $124,185 per person (all ages)
+
+        **Key Features**:
+        - Plan AS 800 ACTIVA SALUD
+        - Máxima cobertura
+        - Sin límites
+        - Medicina especializada
+        - Tratamientos avanzados
+        - VIP access
+
+        **Best For**: Premium healthcare with VIP services.
+      </Accordion>
+
+      <Accordion title="PLAN AS 900" icon="trophy">
+        **Price**: $131,776 per person (all ages)
+
+        **Key Features**:
+        - Plan AS 900 ACTIVA SALUD
+        - Cobertura total
+        - Medicina de vanguardia
+        - Acceso preferencial
+        - Todas las prestaciones
+        - Máximo nivel
+
+        **Best For**: Those seeking the absolute highest level of care.
+      </Accordion>
+    </AccordionGroup>
+
+    ### Pricing Simplicity
+
+    Most Activa Salud plans use unified pricing:
+
+    ```javascript
+    // Most plans: single price for all ages
+    preciosPorEdad: { "≤100": 76876 }
+    
+    // AS 300 has 2 age brackets
+    preciosPorEdad: {
+      "≤65": 88704,
+      ">65": 133266
+    }
+    ```
+  </Tab>
+
+  <Tab title="MEDIFE">
+    ### MEDIFE Plans
+
+    MEDIFE uses a unique pricing structure that differentiates between individuals, couples (matrimonio), and children.
+
+    <AccordionGroup>
+      <Accordion title="PLAN BRONCE" icon="dollar-sign">
+        **Price Range**: $121,352 - $313,450 (individual, varies by age)
+
+        **Key Features**:
+        - Plan básico MEDIFE
+        - Cobertura integral
+        - Red de prestadores MEDIFE
+        - Emergencias 24hs
+        - Consultas médicas
+        - Estudios básicos
+        - Plan económico
+
+        **Special Pricing**:
+        - Individual rates
+        - Matrimonio (couple) rates
+        - Differentiated child pricing (1st child, 2nd child, adult children)
+      </Accordion>
+
+      <Accordion title="PLAN PLATA" icon="star">
+        **Price Range**: $146,277 - $397,819 (individual, varies by age)
+
+        **Recommended Plan** ⭐
+
+        **Key Features**:
+        - Plan estándar MEDIFE
+        - Cobertura ampliada
+        - Red de prestadores completa
+        - Emergencias 24hs prioritarias
+        - Consultas médicas sin límite
+        - Estudios de mediana complejidad
+        - Cobertura odontológica básica
+
+        **Best For**: Families seeking well-rounded coverage.
+      </Accordion>
+
+      <Accordion title="PLAN ORO" icon="crown">
+        **Price Range**: $166,234 - $457,144 (individual, varies by age)
+
+        **Key Features**:
+        - Plan premium MEDIFE
+        - Cobertura máxima
+        - Red de prestadores premium
+        - Emergencias 24hs VIP
+        - Consultas médicas ilimitadas
+        - Estudios de alta complejidad
+        - Cobertura odontológica completa
+        - Medicina preventiva premium
+        - Cobertura internacional
+
+        **Best For**: Those wanting top-tier MEDIFE coverage including international coverage.
+      </Accordion>
+    </AccordionGroup>
+
+    ### MEDIFE Pricing Structure
+
+    MEDIFE has the most complex pricing model:
+
+    ```javascript
+    {
+      individual: {
+        "0-29": price,
+        "30-39": price,
+        "40-49": price,
+        "50-59": price,
+        "60+": price
+      },
+      conyuge: {
+        // Partner pricing (usually lower than individual)
+      },
+      matrimonio: {
+        // Couple package pricing
+      },
+      hijos: {
+        primerHijo: price,      // First child
+        segundoHijo: price,     // Second child
+        hijoAdulto: price,      // Adult child (21-29)
+        familiarCargo: price    // Dependent family member
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="OSPADEP Salud">
+    ### OSPADEP SALUD Plans
+
+    OSPADEP Salud offers special pricing for OSPADEP members (afiliados) versus general public (particulares).
+
+    <AccordionGroup>
+      <Accordion title="PLAN OS25" icon="dollar-sign">
+        **Afiliado Pricing**: $74,087 - $222,262 (varies by age)
+        **Particular Pricing**: $81,866 - $245,599 (varies by age)
+
+        **Key Features**:
+        - Plan básico OSPADEP SALUD
+        - Cobertura integral de salud
+        - Emergencias 24hs
+        - Consultas médicas
+        - Red de prestadores OSPADEP
+        - Ideal para jóvenes y familias
+
+        **Best For**: Budget-conscious OSPADEP members.
+      </Accordion>
+
+      <Accordion title="PLAN OS300" icon="star">
+        **Afiliado Pricing**: $93,754 - $281,261 (varies by age)
+        **Particular Pricing**: $103,598 - $310,793 (varies by age)
+
+        **Recommended Plan** ⭐
+
+        **Key Features**:
+        - Plan intermedio OSPADEP SALUD
+        - Cobertura ampliada
+        - Emergencias 24hs prioritarias
+        - Consultas médicas sin límite
+        - Estudios de mediana complejidad
+        - Red completa de prestadores
+        - Ideal para familias
+
+        **Best For**: OSPADEP members seeking comprehensive family coverage.
+      </Accordion>
+
+      <Accordion title="PLAN OS900" icon="crown">
+        **Afiliado Pricing**: $111,692 - $331,263 (varies by age)
+        **Particular Pricing**: $123,420 - $366,045 (varies by age)
+
+        **Key Features**:
+        - Plan premium OSPADEP SALUD
+        - Cobertura máxima
+        - Emergencias 24hs VIP
+        - Consultas médicas ilimitadas
+        - Estudios de alta complejidad
+        - Red premium de prestadores
+        - Medicina preventiva
+        - Internación en habitación privada
+
+        **Best For**: OSPADEP members wanting the highest level of care.
+      </Accordion>
+    </AccordionGroup>
+
+    ### Dual Pricing Model
+
+    ```javascript
+    preciosPorEdad: {
+      // Standard member pricing
+      "18-27": { adultoConyugue: 74087, hijoMenor: 45193 }
+    },
+    preciosPorEdadParticular: {
+      // Non-member (general public) pricing
+      "18-27": { adultoConyugue: 81866, hijoMenor: 49938 }
+    }
+    ```
+
+    <Info>
+      OSPADEP Salud uses the most granular age brackets (8 different groups), providing precise age-based pricing.
+    </Info>
+  </Tab>
+</Tabs>
+
+## How to Compare Plans
+
+<Steps>
+  <Step title="Consider Your Budget">
+    Start with your monthly budget range. Plans range from ~$70,000 to over $900,000 per month depending on provider, plan tier, and family composition.
+  </Step>
+  
+  <Step title="Evaluate Provider Networks">
+    Different providers have different hospital and doctor networks. Check which providers are available in your area:
+    - OMINT: Tiered networks (2500, 4500, 6500, 8500)
+    - Swiss Medical: Comprehensive national network
+    - Activa Salud: Focused network
+    - MEDIFE: Wide network across Argentina
+  </Step>
+  
+  <Step title="Review Coverage Needs">
+    Consider your family's specific healthcare needs:
+    - **Basic coverage**: Consultations, emergencies, basic studies
+    - **Comprehensive coverage**: Add dental, preventive medicine
+    - **Premium coverage**: Add private rooms, high-complexity studies, international coverage
+  </Step>
+  
+  <Step title="Factor in Family Size">
+    - **Solo/Pareja**: All providers competitive
+    - **With children**: OMINT offers better child discounts than Swiss Medical
+    - **Large families**: Consider per-capita pricing carefully
+  </Step>
+</Steps>
+
+## Understanding Plan Features
+
+<CardGroup cols={2}>
+  <Card title="Emergencias 24hs" icon="ambulance">
+    24-hour emergency coverage. All plans include this.
+  </Card>
+  <Card title="Habitación Privada" icon="bed">
+    Private hospital room for admissions. Premium plans include this.
+  </Card>
+  <Card title="Consultas Sin Límite" icon="stethoscope">
+    Unlimited medical consultations. Mid-tier and premium plans.
+  </Card>
+  <Card title="Cobertura Odontológica" icon="tooth">
+    Dental coverage. Check if basic or complete.
+  </Card>
+  <Card title="Medicina Preventiva" icon="shield-check">
+    Preventive medicine and check-ups. Premium plans.
+  </Card>
+  <Card title="Sin Copagos" icon="ban">
+    No copayments required. Specific plans like OMINT Comunidad.
+  </Card>
+  <Card title="Alta Complejidad" icon="microscope">
+    High-complexity studies and procedures. Premium plans.
+  </Card>
+  <Card title="Cobertura Internacional" icon="globe">
+    International coverage. Top-tier plans only (e.g., MEDIFE Oro).
+  </Card>
+</CardGroup>
+
+## Recommended Plans by Provider
+
+The system marks certain plans as "recommended" based on value and coverage:
+
+- **OMINT**: Plan 6500 ⭐
+- **Swiss Medical**: Plan PO64 ⭐
+- **MEDIFE**: Plan Plata ⭐
+- **OSPADEP Salud**: Plan OS300 ⭐
+
+These recommendations balance comprehensive coverage with competitive pricing.
+
+## Plan Data Structure
+
+For technical reference, here's how plan data is structured:
+
+```json
+{
+  "version": "2026-02",
+  "fechaActualizacion": "2026-01-16",
+  "prestadores": {
+    "omint": {
+      "name": "OMINT",
+      "tipoEstructura": "estructura_compleja",
+      "planes": {
+        "plan6500": {
+          "name": "PLAN 6500",
+          "type": "omint",
+          "preciosPorEdad": { ... },
+          "features": [ ... ],
+          "recommended": true
+        }
+      }
+    }
+  }
+}
+```
+
+See [Price Calculator](/user-guide/price-calculator) for details on how pricing is calculated for each structure type.

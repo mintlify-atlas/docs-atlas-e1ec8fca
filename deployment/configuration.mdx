@@ -1,0 +1,571 @@
+---
+title: 'Configuration'
+description: 'Environment configuration and settings for Cotizador Online OSPADEP'
+---
+
+## Configuration Overview
+
+OSPADEP uses a centralized configuration system in `config.js` that adapts based on the environment (development vs production).
+
+## Environment Configuration
+
+### Development vs Production
+
+The application automatically adjusts settings based on the `ENVIRONMENT` variable:
+
+<CodeGroup>
+```javascript Development
+const CONFIG = {
+    ENVIRONMENT: 'development',
+    ADMIN_PASSWORD_HASH: null, // Uses simple password
+    SESSION_TIMEOUT: 120, // 2 hours for convenience
+    MAX_LOGIN_ATTEMPTS: 10 // More lenient
+};
+```
+
+```javascript Production
+const CONFIG = {
+    ENVIRONMENT: 'production',
+    ADMIN_PASSWORD_HASH: 'sha256_hash_here',
+    SESSION_TIMEOUT: 30, // 30 minutes
+    MAX_LOGIN_ATTEMPTS: 3 // Strict security
+};
+```
+</CodeGroup>
+
+### Environment Detection
+
+The `getConfig()` function automatically applies environment-specific overrides:
+
+```javascript
+function getConfig() {
+    if (CONFIG.ENVIRONMENT === 'development') {
+        return {
+            ...CONFIG,
+            ADMIN_PASSWORD_HASH: null,
+            SESSION_TIMEOUT: 120,
+            MAX_LOGIN_ATTEMPTS: 10
+        };
+    }
+    return CONFIG;
+}
+```
+
+## Core Configuration Options
+
+### Security Settings
+
+<ParamField path="ENVIRONMENT" type="string" default="development" required>
+  Application environment mode.
+  
+  **Options:**
+  - `development` - Local development with relaxed security
+  - `production` - Production deployment with strict security
+  
+  **Example:**
+  ```javascript
+  ENVIRONMENT: 'production'
+  ```
+</ParamField>
+
+<ParamField path="ADMIN_PASSWORD_HASH" type="string" required>
+  SHA-256 hash of the admin password. Never store plain text passwords.
+  
+  **Default:** `a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3` (hash of "hello")
+  
+  **Generate:**
+  ```bash
+  echo -n "your_password" | sha256sum
+  ```
+  
+  <Warning>
+  Change this immediately before production deployment!
+  </Warning>
+</ParamField>
+
+<ParamField path="SUPER_ADMIN_PASSWORD" type="string">
+  Super admin password for elevated privileges (future feature).
+  
+  **Default:** `superadmin2024`
+  
+  <Warning>
+  This should also be hashed in production. Currently stored as plain text for development.
+  </Warning>
+</ParamField>
+
+<ParamField path="SESSION_TIMEOUT" type="number" default="30">
+  Session timeout duration in minutes.
+  
+  **Recommended values:**
+  - Development: `120` (2 hours)
+  - Production: `30` (30 minutes)
+  - High security: `15` (15 minutes)
+  
+  **Example:**
+  ```javascript
+  SESSION_TIMEOUT: 30
+  ```
+</ParamField>
+
+<ParamField path="MAX_LOGIN_ATTEMPTS" type="number" default="3">
+  Maximum failed login attempts before account lockout.
+  
+  **Recommended:** `3` attempts (industry standard)
+  
+  After reaching this limit, the account is locked for 15 minutes.
+</ParamField>
+
+### User Roles
+
+<ParamField path="USER_ROLES" type="object">
+  Role definitions for future multi-user support.
+  
+  **Structure:**
+  ```javascript
+  USER_ROLES: {
+      SUPER_ADMIN: 'super_admin',
+      ADMIN: 'admin',
+      USER: 'user'
+  }
+  ```
+  
+  <Note>
+  Currently, only admin role is implemented. Multi-user support planned for future releases.
+  </Note>
+</ParamField>
+
+### Synchronization Settings
+
+<ParamField path="SYNC_INTERVAL" type="number" default="5000">
+  Interval for data synchronization in milliseconds.
+  
+  **Default:** `5000` (5 seconds)
+  
+  Used for future backend sync functionality.
+</ParamField>
+
+<ParamField path="AUTO_SYNC" type="boolean" default="true">
+  Enable automatic data synchronization.
+  
+  **Example:**
+  ```javascript
+  AUTO_SYNC: true
+  ```
+  
+  <Note>
+  Requires backend API implementation (Option 2 deployment).
+  </Note>
+</ParamField>
+
+### Audit & Logging
+
+<ParamField path="LOG_ALL_ACTIONS" type="boolean" default="true">
+  Enable comprehensive action logging for security and audit purposes.
+  
+  **Logs include:**
+  - Login attempts (success/failure)
+  - Price changes
+  - Admin actions
+  - Security incidents
+</ParamField>
+
+<ParamField path="MAX_AUDIT_RECORDS" type="number" default="1000">
+  Maximum number of audit records to retain in localStorage.
+  
+  **Recommended:** `1000` records
+  
+  Older records are automatically pruned when limit is reached.
+</ParamField>
+
+### Data Management
+
+<ParamField path="BACKUP_INTERVAL" type="number" default="24">
+  Automatic backup interval in hours.
+  
+  **Default:** `24` hours
+  
+  <Note>
+  Backup functionality requires backend implementation (Option 2).
+  </Note>
+</ParamField>
+
+<ParamField path="MAX_HISTORY_RECORDS" type="number" default="100">
+  Maximum price change history records to retain.
+  
+  **Example:**
+  ```javascript
+  MAX_HISTORY_RECORDS: 100
+  ```
+</ParamField>
+
+## API Configuration
+
+API endpoints for future backend integration:
+
+<ParamField path="API_BASE_URL" type="string" default="''">
+  Base URL for backend API.
+  
+  **Examples:**
+  - Development: `http://localhost:3000`
+  - Production: `https://api.ospadep.com`
+  
+  **Current:** Empty (no backend)
+  
+  ```javascript
+  API_BASE_URL: '' // Disabled
+  ```
+</ParamField>
+
+<ParamField path="BACKUP_ENDPOINT" type="string" default="'/api/backup'">
+  Endpoint for backup operations.
+  
+  **Full URL:** `{API_BASE_URL}/api/backup`
+</ParamField>
+
+<ParamField path="PRICES_ENDPOINT" type="string" default="'/api/prices'">
+  Endpoint for price data operations.
+  
+  **Methods:**
+  - `GET /api/prices` - Fetch current prices
+  - `POST /api/prices` - Update prices
+  - `PUT /api/prices/:id` - Update specific price
+</ParamField>
+
+<ParamField path="SYNC_ENDPOINT" type="string" default="'/api/sync'">
+  Endpoint for data synchronization.
+  
+  Used for multi-client sync in future backend implementation.
+</ParamField>
+
+<ParamField path="AUDIT_ENDPOINT" type="string" default="'/api/audit'">
+  Endpoint for submitting audit logs to backend.
+  
+  **Payload:**
+  ```javascript
+  {
+      type: 'LOGIN_SUCCESS',
+      timestamp: '2026-03-05T10:30:00Z',
+      data: { /* event details */ }
+  }
+  ```
+</ParamField>
+
+## Notification Configuration
+
+<ParamField path="ADMIN_EMAIL" type="string" default="''">
+  Admin email address for security alerts and notifications.
+  
+  **Example:**
+  ```javascript
+  ADMIN_EMAIL: 'admin@ospadep.com'
+  ```
+  
+  **Usage:**
+  - Security incident alerts
+  - Password reset requests
+  - System notifications
+  
+  <Note>
+  Email functionality requires backend implementation.
+  </Note>
+</ParamField>
+
+<ParamField path="SLACK_WEBHOOK" type="string" default="''">
+  Slack webhook URL for real-time notifications.
+  
+  **Setup:**
+  1. Create Slack incoming webhook
+  2. Copy webhook URL
+  3. Set in config:
+  ```javascript
+  SLACK_WEBHOOK: 'https://hooks.slack.com/services/T00/B00/XX'
+  ```
+  
+  **Alerts sent for:**
+  - Multiple failed login attempts
+  - Account lockouts
+  - Critical security events
+</ParamField>
+
+## Plan Configuration
+
+<ParamField path="DEFAULT_CURRENCY" type="string" default="'ARS'">
+  Default currency for price display.
+  
+  **Example:**
+  ```javascript
+  DEFAULT_CURRENCY: 'ARS' // Argentine Peso
+  ```
+</ParamField>
+
+<ParamField path="PRICE_PRECISION" type="number" default="0">
+  Number of decimal places for price display.
+  
+  **Examples:**
+  - `0` - No decimals (e.g., $15000)
+  - `2` - Two decimals (e.g., $15000.00)
+</ParamField>
+
+<ParamField path="MIN_PRICE" type="number" default="1000">
+  Minimum allowed price value.
+  
+  **Validation:** Prevents setting prices below this threshold.
+</ParamField>
+
+<ParamField path="MAX_PRICE" type="number" default="500000">
+  Maximum allowed price value.
+  
+  **Validation:** Prevents setting prices above this threshold.
+</ParamField>
+
+## UI Configuration
+
+<ParamField path="COMPANY_NAME" type="string" default="'OSPADEP'">
+  Company name displayed throughout the application.
+  
+  **Example:**
+  ```javascript
+  COMPANY_NAME: 'OSPADEP'
+  ```
+</ParamField>
+
+<ParamField path="LOGO_URL" type="string">
+  URL to company logo image.
+  
+  **Default:**
+  ```javascript
+  LOGO_URL: 'https://i.postimg.cc/qBhxQhRv/482cc3df-6285-4fa0-93ea-8d1f008f9dbf.png'
+  ```
+  
+  **Recommended formats:** PNG, SVG, JPEG
+  **Max size:** 200KB
+</ParamField>
+
+<ParamField path="THEME_COLOR" type="string" default="'#1053F3'">
+  Primary theme color (hex format).
+  
+  **Example:**
+  ```javascript
+  THEME_COLOR: '#1053F3' // OSPADEP blue
+  ```
+</ParamField>
+
+## Complete Configuration Example
+
+### Production Configuration
+
+```javascript
+const CONFIG = {
+    // Environment
+    ENVIRONMENT: 'production',
+    
+    // Security
+    ADMIN_PASSWORD_HASH: 'your_sha256_hash_here',
+    SUPER_ADMIN_PASSWORD: 'super_secure_password_hash',
+    SESSION_TIMEOUT: 30,
+    MAX_LOGIN_ATTEMPTS: 3,
+    
+    // User Roles
+    USER_ROLES: {
+        SUPER_ADMIN: 'super_admin',
+        ADMIN: 'admin',
+        USER: 'user'
+    },
+    
+    // Sync
+    SYNC_INTERVAL: 5000,
+    AUTO_SYNC: true,
+    
+    // Audit
+    LOG_ALL_ACTIONS: true,
+    MAX_AUDIT_RECORDS: 1000,
+    
+    // Data
+    BACKUP_INTERVAL: 24,
+    MAX_HISTORY_RECORDS: 100,
+    
+    // API (for future backend)
+    API_BASE_URL: 'https://api.ospadep.com',
+    BACKUP_ENDPOINT: '/api/backup',
+    PRICES_ENDPOINT: '/api/prices',
+    SYNC_ENDPOINT: '/api/sync',
+    AUDIT_ENDPOINT: '/api/audit',
+    
+    // Notifications
+    ADMIN_EMAIL: 'admin@ospadep.com',
+    SLACK_WEBHOOK: 'https://hooks.slack.com/services/YOUR/WEBHOOK',
+    
+    // Plans
+    DEFAULT_CURRENCY: 'ARS',
+    PRICE_PRECISION: 0,
+    MIN_PRICE: 1000,
+    MAX_PRICE: 500000,
+    
+    // UI
+    COMPANY_NAME: 'OSPADEP',
+    LOGO_URL: 'https://i.postimg.cc/qBhxQhRv/logo.png',
+    THEME_COLOR: '#1053F3'
+};
+```
+
+## Environment Variables
+
+### Using Environment Variables
+
+For better security, use environment variables instead of hardcoding values:
+
+```javascript
+const CONFIG = {
+    ENVIRONMENT: process.env.NODE_ENV || 'development',
+    ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+    API_BASE_URL: process.env.API_BASE_URL || '',
+    ADMIN_EMAIL: process.env.ADMIN_EMAIL || '',
+    SLACK_WEBHOOK: process.env.SLACK_WEBHOOK || ''
+};
+```
+
+### Setting Environment Variables
+
+<Tabs>
+  <Tab title="Netlify">
+    1. Go to Site settings > Environment variables
+    2. Add variables:
+       - `ADMIN_PASSWORD_HASH`
+       - `ENVIRONMENT=production`
+       - `API_BASE_URL`
+       - `SLACK_WEBHOOK`
+    3. Redeploy site
+  </Tab>
+  
+  <Tab title="Vercel">
+    1. Go to Settings > Environment Variables
+    2. Add for Production environment:
+       ```
+       ADMIN_PASSWORD_HASH=your_hash
+       ENVIRONMENT=production
+       API_BASE_URL=https://api.ospadep.com
+       ```
+    3. Redeploy
+  </Tab>
+  
+  <Tab title="Railway">
+    ```bash
+    railway variables set ADMIN_PASSWORD_HASH=your_hash
+    railway variables set ENVIRONMENT=production
+    railway variables set API_BASE_URL=https://api.ospadep.com
+    railway variables set ADMIN_EMAIL=admin@ospadep.com
+    ```
+  </Tab>
+  
+  <Tab title="Local (.env)">
+    Create `.env` file:
+    ```bash
+    NODE_ENV=development
+    ADMIN_PASSWORD_HASH=a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
+    API_BASE_URL=http://localhost:3000
+    ADMIN_EMAIL=dev@ospadep.com
+    SLACK_WEBHOOK=
+    ```
+    
+    <Warning>
+    Never commit `.env` files to version control!
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Configuration Best Practices
+
+### Security
+
+1. **Never commit secrets** to version control
+2. **Use environment variables** for sensitive data
+3. **Rotate passwords** regularly (every 90 days)
+4. **Hash all passwords** using SHA-256 or better
+5. **Enable logging** in production
+
+### Performance
+
+1. **Set appropriate timeouts** based on usage patterns
+2. **Limit audit records** to prevent localStorage overflow
+3. **Configure sync intervals** based on update frequency
+
+### Maintenance
+
+1. **Document custom settings** in your deployment notes
+2. **Keep backups** of configuration files
+3. **Test configuration** changes in development first
+4. **Monitor logs** for configuration issues
+
+## Troubleshooting
+
+### Configuration Not Loading
+
+**Issue:** `APP_CONFIG` is undefined
+
+**Solution:**
+```javascript
+// Ensure config.js is loaded before other scripts
+<script src="config.js"></script>
+<script src="security.js"></script>
+<script src="app.js"></script>
+```
+
+### Environment Not Detected
+
+**Issue:** Production behaves like development
+
+**Solution:** Check `ENVIRONMENT` value:
+```javascript
+console.log(APP_CONFIG.ENVIRONMENT); // Should be 'production'
+```
+
+### Session Timeout Not Working
+
+**Issue:** Sessions never expire
+
+**Solution:** Verify SecurityManager is instantiated:
+```javascript
+console.log(window.SecurityManager); // Should be defined
+console.log(APP_CONFIG.SESSION_TIMEOUT); // Should be 30
+```
+
+## Migration Guide
+
+### From Development to Production
+
+<Steps>
+  <Step title="Update Environment">
+    ```javascript
+    ENVIRONMENT: 'production'
+    ```
+  </Step>
+  
+  <Step title="Generate New Password Hash">
+    Create secure production password and generate SHA-256 hash.
+  </Step>
+  
+  <Step title="Configure API URLs">
+    If using backend:
+    ```javascript
+    API_BASE_URL: 'https://api.ospadep.com'
+    ```
+  </Step>
+  
+  <Step title="Set Notifications">
+    Add Slack webhook or admin email:
+    ```javascript
+    SLACK_WEBHOOK: 'https://hooks.slack.com/...'
+    ADMIN_EMAIL: 'admin@ospadep.com'
+    ```
+  </Step>
+  
+  <Step title="Test Configuration">
+    Verify all settings work correctly before going live.
+  </Step>
+</Steps>
+
+## Next Steps
+
+- Review [Security Configuration](/deployment/security) for production hardening
+- Explore [Hosting Options](/deployment/hosting-options) for deployment platforms
+- Read [Deployment Overview](/deployment/overview) for complete deployment guide

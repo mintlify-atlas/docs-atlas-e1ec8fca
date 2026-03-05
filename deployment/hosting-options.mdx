@@ -1,0 +1,391 @@
+---
+title: 'Hosting Options'
+description: 'Platform-specific deployment guides for Cotizador Online OSPADEP'
+---
+
+## Platform Comparison
+
+Cotizador Online OSPADEP can be deployed to multiple hosting platforms. Here's a quick comparison:
+
+| Platform | Cost | Setup Time | HTTPS | Best For |
+|----------|------|------------|-------|----------|
+| Netlify | Free-$10/mo | 5 minutes | Auto | Beginners |
+| Vercel | Free-$20/mo | 5 minutes | Auto | Developers |
+| GitHub Pages | Free | 10 minutes | Auto | Simple sites |
+| Railway (Hybrid) | $5-20/mo | 15 minutes | Auto | Backend needs |
+
+## Recommended: Netlify Deployment
+
+Netlify is the recommended platform for deploying OSPADEP due to its simplicity, automatic HTTPS, and excellent performance.
+
+<Tabs>
+  <Tab title="Netlify (Recommended)">
+    ### Prerequisites
+    - GitHub account
+    - Git installed locally
+    - Project files ready
+
+    ### Deployment Steps
+
+    <Steps>
+      <Step title="Push to GitHub">
+        If you haven't already, push your code to GitHub:
+        ```bash
+        git init
+        git add .
+        git commit -m "Initial commit"
+        git branch -M main
+        git remote add origin https://github.com/yourusername/ospadep-cotizador.git
+        git push -u origin main
+        ```
+      </Step>
+
+      <Step title="Connect to Netlify">
+        1. Go to [netlify.com](https://netlify.com)
+        2. Sign up or log in with GitHub
+        3. Click "New site from Git"
+        4. Select your GitHub repository
+      </Step>
+
+      <Step title="Configure Build Settings">
+        Since this is a static site, use these settings:
+        - **Build command:** Leave empty (or `npm run build` if you add a build step)
+        - **Publish directory:** `.` (root directory)
+        - **Base directory:** Leave empty
+      </Step>
+
+      <Step title="Deploy">
+        Click "Deploy site" and wait for the build to complete (usually under 1 minute).
+      </Step>
+
+      <Step title="Configure Custom Domain (Optional)">
+        1. In your site dashboard, go to "Domain settings"
+        2. Click "Add custom domain"
+        3. Follow the instructions to configure DNS
+        4. HTTPS will be enabled automatically
+      </Step>
+    </Steps>
+
+    ### Environment Variables
+
+    For sensitive configuration, use Netlify environment variables:
+
+    1. Go to Site settings > Environment variables
+    2. Add variables:
+       - `ADMIN_PASSWORD_HASH` (your SHA-256 hash)
+       - `ENVIRONMENT` (set to `production`)
+
+    ### Cost Breakdown
+
+    - **Free tier:** 100 GB bandwidth, 300 build minutes/month
+    - **Pro tier ($19/month):** Unlimited builds, 1 TB bandwidth
+    - **Custom domain:** $10-15/year (purchased separately)
+
+    <Note>
+    Netlify's free tier is more than sufficient for OSPADEP's typical usage.
+    </Note>
+
+    ### Automatic Deployments
+
+    Netlify automatically deploys when you push to your main branch:
+    ```bash
+    git add .
+    git commit -m "Update prices"
+    git push origin main
+    # Automatic deployment triggered!
+    ```
+  </Tab>
+
+  <Tab title="Vercel">
+    ### Prerequisites
+    - GitHub account
+    - Vercel CLI (optional but recommended)
+
+    ### Installation
+
+    ```bash
+    npm install -g vercel
+    ```
+
+    ### Deployment Steps
+
+    <Steps>
+      <Step title="Deploy via CLI">
+        Navigate to your project directory and run:
+        ```bash
+        vercel --prod
+        ```
+        Follow the prompts to link your project.
+      </Step>
+
+      <Step title="Or Deploy via Git">
+        1. Go to [vercel.com](https://vercel.com)
+        2. Import your GitHub repository
+        3. Click "Deploy"
+      </Step>
+
+      <Step title="Configure Environment">
+        Add environment variables in the Vercel dashboard:
+        - Navigate to Settings > Environment Variables
+        - Add production variables
+      </Step>
+    </Steps>
+
+    ### Cost Breakdown
+
+    - **Hobby (Free):** Perfect for OSPADEP
+    - **Pro ($20/month):** Advanced features
+    - **Domain:** Free .vercel.app subdomain or use custom domain
+
+    ### Vercel Configuration
+
+    Create a `vercel.json` file (optional):
+    ```json
+    {
+      "headers": [
+        {
+          "source": "/(.*)",
+          "headers": [
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Tab>
+
+  <Tab title="GitHub Pages">
+    ### Prerequisites
+    - GitHub account
+    - Repository with your code
+
+    ### Deployment Steps
+
+    <Steps>
+      <Step title="Push to GitHub">
+        Ensure your code is in a GitHub repository.
+      </Step>
+
+      <Step title="Enable GitHub Pages">
+        1. Go to your repository on GitHub
+        2. Click Settings > Pages
+        3. Under "Source", select your branch (usually `main`)
+        4. Select root folder (`/`)
+        5. Click Save
+      </Step>
+
+      <Step title="Access Your Site">
+        Your site will be available at:
+        ```
+        https://yourusername.github.io/repository-name/
+        ```
+      </Step>
+
+      <Step title="Custom Domain (Optional)">
+        1. Add a `CNAME` file to your repository root:
+           ```
+           cotizador.ospadep.com
+           ```
+        2. Configure DNS with your domain provider
+        3. Enable HTTPS in GitHub Pages settings
+      </Step>
+    </Steps>
+
+    ### Cost
+
+    - **Hosting:** Free
+    - **Custom domain:** $10-15/year
+
+    <Warning>
+    GitHub Pages has a 1 GB soft limit and is best suited for documentation or smaller applications.
+    </Warning>
+
+    ### Limitations
+
+    - No server-side processing
+    - No environment variables (use build-time configuration)
+    - Public repositories only (for free tier)
+  </Tab>
+
+  <Tab title="Railway (Hybrid)">
+    ### When to Use Railway
+
+    Choose Railway when you need:
+    - Backend API for data persistence
+    - Database integration
+    - Server-side processing
+
+    ### Architecture
+
+    ```
+    Frontend (Netlify/Vercel) ↔️ Backend API (Railway) ↔️ Database (PostgreSQL/SQLite)
+    ```
+
+    ### Backend Setup
+
+    <Steps>
+      <Step title="Create Backend Project">
+        Create a simple Node.js + Express backend:
+        ```javascript
+        // server.js
+        const express = require('express');
+        const cors = require('cors');
+        const sqlite3 = require('sqlite3');
+        
+        const app = express();
+        app.use(cors());
+        app.use(express.json());
+        
+        const db = new sqlite3.Database('./ospadep.db');
+        
+        app.get('/api/prices', (req, res) => {
+          db.all('SELECT * FROM prices', (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(rows);
+          });
+        });
+        
+        app.post('/api/prices', (req, res) => {
+          const { planId, price } = req.body;
+          db.run(
+            'UPDATE prices SET amount = ? WHERE plan_id = ?',
+            [price, planId],
+            (err) => {
+              if (err) return res.status(500).json({ error: err.message });
+              res.json({ success: true });
+            }
+          );
+        });
+        
+        const PORT = process.env.PORT || 3000;
+        app.listen(PORT, () => {
+          console.log(`Server running on port ${PORT}`);
+        });
+        ```
+      </Step>
+
+      <Step title="Install Railway CLI">
+        ```bash
+        npm install -g @railway/cli
+        railway login
+        ```
+      </Step>
+
+      <Step title="Deploy to Railway">
+        ```bash
+        railway init
+        railway up
+        ```
+      </Step>
+
+      <Step title="Update Frontend Config">
+        In your frontend `config.js`, set:
+        ```javascript
+        API_BASE_URL: 'https://your-app.railway.app'
+        ```
+      </Step>
+    </Steps>
+
+    ### Cost Breakdown
+
+    - **Starter:** $5/month (500 hours)
+    - **Developer:** $10/month (1000 hours)
+    - **Team:** $20/month (2000 hours)
+    - **Database:** Included
+
+    ### Database Options
+
+    Railway supports:
+    - PostgreSQL (recommended for production)
+    - MySQL
+    - Redis (for caching)
+    - MongoDB
+
+    <Tip>
+    Start with SQLite for simplicity, migrate to PostgreSQL as you scale.
+    </Tip>
+  </Tab>
+</Tabs>
+
+## Hybrid Deployment Architecture
+
+For the best performance and cost optimization, use a hybrid approach:
+
+```
+┌─────────────────┐
+│   Netlify       │  ← Frontend static files
+│   (Free)        │     HTML, CSS, JavaScript
+└────────┬────────┘
+         │
+         │ HTTPS
+         │
+         ▼
+┌─────────────────┐
+│   Railway       │  ← Backend API
+│   ($5-20/mo)    │     Node.js + Express
+└────────┬────────┘     Database (SQLite/PostgreSQL)
+         │
+         ▼
+    [Database]
+```
+
+### Benefits
+
+1. **Cost-effective:** Free/cheap frontend hosting
+2. **Scalable:** Backend scales independently
+3. **Fast:** Static frontend with CDN
+4. **Secure:** Backend handles sensitive operations
+
+## Domain Configuration
+
+After choosing a hosting platform, configure your custom domain:
+
+<Steps>
+  <Step title="Purchase Domain">
+    Buy a domain from:
+    - Namecheap ($10-15/year)
+    - Google Domains ($12/year)
+    - Cloudflare ($9/year)
+  </Step>
+
+  <Step title="Configure DNS">
+    Add DNS records:
+    - **A Record:** Points to hosting IP
+    - **CNAME Record:** `www` points to root domain
+  </Step>
+
+  <Step title="Enable HTTPS">
+    Most platforms enable HTTPS automatically. If not:
+    - Netlify: Automatic
+    - Vercel: Automatic
+    - GitHub Pages: Enable in settings
+    - Railway: Use Cloudflare for SSL
+  </Step>
+</Steps>
+
+## Deployment Checklist
+
+Before going live:
+
+- [ ] Production environment configured
+- [ ] Admin password hashed and secure
+- [ ] HTTPS enabled
+- [ ] Custom domain configured (optional)
+- [ ] Session timeout set appropriately
+- [ ] Security features tested
+- [ ] Backups configured
+- [ ] Monitoring enabled
+
+## Next Steps
+
+- Review [Security Configuration](/deployment/security)
+- Set up [Environment Variables](/deployment/configuration)
+- Configure monitoring and analytics
+- Plan for regular backups

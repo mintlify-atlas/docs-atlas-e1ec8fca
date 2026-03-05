@@ -1,80 +1,276 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart Guide
+description: Get started with your first healthcare plan quotation in minutes
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through creating your first healthcare plan quotation from start to finish. The entire process takes less than 5 minutes and requires no account creation.
 
-### Step 1: Set up your local environment
+<Info>
+  As a SaaS product, Cotizador Online OSPADEP is designed to get you from landing page to meaningful results as quickly as possible.
+</Info>
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+## The Quotation Flow
 
-### Step 2: Deploy your changes
+The system uses a 3-step guided process:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+<Steps>
+  <Step title="Select Plan Type">
+    Choose the family composition that matches your needs
+  </Step>
+  <Step title="Enter Information">
+    Provide ages and family details for accurate pricing
+  </Step>
+  <Step title="View Quotations">
+    Compare plans from all providers with personalized pricing
+  </Step>
+</Steps>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Step 1: Select Your Plan Type
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+When you first access the quotation system, you'll see four plan type options:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Para mí" icon="user">
+    Individual plan for one person
+  </Card>
+  <Card title="Para mí y mi pareja" icon="user-friends">
+    Plan for 2 people (you and your partner)
+  </Card>
+  <Card title="Para mí y mis hijos" icon="baby">
+    Family plan with children included
+  </Card>
+  <Card title="Para mi familia completa" icon="home">
+    Complete family plan (partner and children)
+  </Card>
 </CardGroup>
 
+**What happens behind the scenes:**
+
+```javascript
+// From index.html:84-142 - Option selection triggers form generation
+const selectedOption = document.querySelector('.option-item[data-option="familia"]');
+// This determines which form fields will be displayed in Step 2
+```
+
+Click on any option to proceed to Step 2.
+
+## Step 2: Enter Your Information
+
+Based on your selection, the system will dynamically generate the appropriate form fields.
+
+### Example: Individual Plan ("Para mí")
+
+You'll need to provide:
+
+- **Your age**: Used for age-based pricing calculations
+- **Additional details**: Any relevant information for accurate quotation
+
+### Example: Complete Family Plan
+
+You'll need to provide:
+
+<Steps>
+  <Step title="Your age">
+    Primary subscriber age (determines base pricing tier)
+  </Step>
+  <Step title="Partner's age">
+    Spouse/partner age (for family plans)
+  </Step>
+  <Step title="Number of children">
+    How many children to include in the plan
+  </Step>
+  <Step title="Children's ages">
+    Individual age for each child (pricing varies by age group)
+  </Step>
+</Steps>
+
+**Real form validation example:**
+
+```javascript
+// From script.js - Age validation logic
+function determinarGrupoEtario(edad) {
+    if (edad <= 25) return "0-25";
+    if (edad <= 35) return "26-35";
+    if (edad <= 54) return "36-54";
+    if (edad <= 59) return "55-59";
+    return "60+";
+}
+```
+
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Age groups determine pricing tiers. The system automatically calculates the correct tier for each family member.
 </Note>
+
+### Form Fields by Plan Type
+
+| Plan Type | Fields Required |
+|-----------|----------------|
+| Solo | Your age |
+| Pareja | Your age, Partner's age |
+| Hijos | Your age, Number of children, Each child's age |
+| Familia | Your age, Partner's age, Number of children, Each child's age |
+
+Once you've filled in all required fields, click **"Cotizar Plan"** to proceed.
+
+## Step 3: View and Compare Plans
+
+After submitting your information, the system calculates personalized pricing across all healthcare providers.
+
+### Understanding the Results
+
+You'll see a grid of plan cards showing:
+
+<CardGroup cols={2}>
+  <Card title="Provider & Plan Name" icon="building">
+    Healthcare provider logo and specific plan tier
+  </Card>
+  <Card title="Monthly Price" icon="dollar-sign">
+    Total monthly cost based on your family composition
+  </Card>
+  <Card title="Plan Features" icon="check-circle">
+    Coverage details, network type, and special benefits
+  </Card>
+  <Card title="Recommendation Badge" icon="star">
+    System-recommended plans appear with a highlighted badge
+  </Card>
+</CardGroup>
+
+### Price Calculation Example
+
+Here's how the system calculates prices for an OMINT plan:
+
+```javascript
+// From script.js:1053-1108 - OMINT pricing calculation
+function calcularPrecioFinalOMINT(planOMINT, composicionFamiliar, edadTitular, edadPareja) {
+    let precioTotal = 0;
+    
+    // 1. Primary subscriber (titular)
+    const grupoEtarioTitular = determinarGrupoEtario(edadTitular);
+    precioTotal += planOMINT.preciosPorEdad[grupoEtarioTitular].adultoConyugue;
+    
+    // 2. Partner/spouse if applicable
+    if (composicionFamiliar.tienePareja && edadPareja) {
+        const grupoEtarioPareja = determinarGrupoEtario(edadPareja);
+        precioTotal += planOMINT.preciosPorEdad[grupoEtarioPareja].adultoConyugue;
+    }
+    
+    // 3. Children under 25
+    if (children.length > 0) {
+        precioTotal += planOMINT.preciosPorEdad[grupoEtarioTitular].hijo1Menor;
+        if (children.length > 1) {
+            precioTotal += planOMINT.preciosPorEdad[grupoEtarioTitular].hijo2MasMenores * (children.length - 1);
+        }
+    }
+    
+    return Math.round(precioTotal);
+}
+```
+
+**Real Example:**
+
+Family of 4 (Adult 35, Partner 33, Children ages 8 and 10) selecting OMINT Plan 6500:
+
+1. **Titular (age 35)**: Group "26-35" → $227,182/month
+2. **Partner (age 33)**: Group "26-35" → $227,182/month
+3. **First child (age 8)**: → $138,785/month
+4. **Second child (age 10)**: → $120,514/month
+
+**Total**: $713,663/month
+
+### Filtering Results
+
+Use the provider filter bar to narrow results:
+
+```html
+<!-- From index.html:229-230 - Filter functionality -->
+<div id="prestador-filter-bar" class="prestador-filter-bar header-filter"></div>
+```
+
+Click on provider logos to show only plans from that provider.
+
+### Understanding Plan Features
+
+Each plan card displays key features. Here's what they mean:
+
+<AccordionGroup>
+  <Accordion title="Coverage Levels">
+    - **Básico**: Basic coverage with essential services
+    - **Intermedio**: Standard coverage with extended benefits
+    - **Premium**: Comprehensive coverage with all services
+  </Accordion>
+  
+  <Accordion title="Network Types">
+    - **Red nivel 2500/4500/6500/8500**: OMINT network tiers (higher = more providers)
+    - **Red PO62/PO64**: Swiss Medical network designations
+    - **Red completa**: Full provider network access
+  </Accordion>
+  
+  <Accordion title="Key Features">
+    - **Emergencias 24hs**: 24-hour emergency services
+    - **Consultas sin límite**: Unlimited medical consultations
+    - **Internación habitación privada**: Private room hospitalization
+    - **Estudios de alta complejidad**: High-complexity diagnostic studies
+    - **Cobertura odontológica**: Dental coverage included
+  </Accordion>
+</AccordionGroup>
+
+## Modifying Your Quotation
+
+Need to change your information?
+
+<Steps>
+  <Step title="Click 'Modificar datos'">
+    Located at the top of the results page
+  </Step>
+  <Step title="Update your information">
+    Modify ages or family composition as needed
+  </Step>
+  <Step title="Recalculate">
+    Click "Cotizar Plan" again to see updated pricing
+  </Step>
+</Steps>
+
+## Next Steps
+
+Now that you've created your first quotation:
+
+<CardGroup cols={2}>
+  <Card title="Explore All Features" icon="compass" href="/features">
+    Learn about advanced capabilities and admin features
+  </Card>
+  <Card title="Admin Panel" icon="lock" href="/admin/admin-panel">
+    If you're an administrator, learn how to manage pricing and users
+  </Card>
+</CardGroup>
+
+## Tips for Best Results
+
+<Note>
+  **Age accuracy matters**: Price differences between age groups can be significant. Ensure all ages are current.
+</Note>
+
+<Note>
+  **Compare across providers**: Prices and coverage vary widely. The system shows all options so you can make an informed decision.
+</Note>
+
+<Note>
+  **Look for recommended plans**: Plans marked with a star are system-recommended based on value and coverage.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="I can't proceed to Step 2">
+    Ensure you've clicked on one of the four plan type options. The "Continuar" button will only activate after selection.
+  </Accordion>
+  
+  <Accordion title="No plans are showing">
+    Check that all required form fields are filled. The system requires valid ages for all family members.
+  </Accordion>
+  
+  <Accordion title="Prices seem incorrect">
+    Prices are calculated based on age groups and family composition. Verify all ages are entered correctly. Contact your administrator if pricing data needs updating.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,323 @@
+---
+title: 'CONFIG Object'
+description: 'Application configuration settings and environment variables'
+---
+
+## Overview
+
+The `CONFIG` object centralizes all application settings including security, roles, sync intervals, and UI configuration.
+
+---
+
+## Access
+
+```javascript
+window.APP_CONFIG // Global configuration object
+```
+
+The configuration is automatically adjusted based on `ENVIRONMENT` setting.
+
+---
+
+## Configuration Fields
+
+### Environment Settings
+
+<ParamField path="ENVIRONMENT" type="string" default="development">
+  Runtime environment: `development` or `production`
+</ParamField>
+
+**Example:**
+
+```javascript
+if (APP_CONFIG.ENVIRONMENT === 'production') {
+  console.log('Running in production mode');
+}
+```
+
+---
+
+### Security Configuration
+
+<ParamField path="ADMIN_PASSWORD_HASH" type="string">
+  SHA-256 hash of admin password (production only)
+  
+  Default: `a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3`
+</ParamField>
+
+<ParamField path="SUPER_ADMIN_PASSWORD" type="string">
+  Super administrator password
+  
+  Default: `superadmin2024`
+</ParamField>
+
+<ParamField path="SESSION_TIMEOUT" type="number" default="30">
+  Session timeout in minutes
+  
+  - Production: 30 minutes
+  - Development: 120 minutes
+</ParamField>
+
+<ParamField path="MAX_LOGIN_ATTEMPTS" type="number" default="3">
+  Maximum failed login attempts before lockout
+  
+  - Production: 3 attempts
+  - Development: 10 attempts
+</ParamField>
+
+---
+
+### User Roles
+
+<ParamField path="USER_ROLES" type="object">
+  Defines available user roles
+</ParamField>
+
+**Structure:**
+
+```javascript
+USER_ROLES: {
+  SUPER_ADMIN: 'super_admin',
+  ADMIN: 'admin',
+  USER: 'user'
+}
+```
+
+**Usage:**
+
+```javascript
+if (currentUser.role === APP_CONFIG.USER_ROLES.SUPER_ADMIN) {
+  // Super admin access
+}
+```
+
+---
+
+### Synchronization Settings
+
+<ParamField path="SYNC_INTERVAL" type="number" default="5000">
+  Auto-sync interval in milliseconds (5 seconds)
+</ParamField>
+
+<ParamField path="AUTO_SYNC" type="boolean" default="true">
+  Enable automatic synchronization
+</ParamField>
+
+**Example:**
+
+```javascript
+if (APP_CONFIG.AUTO_SYNC) {
+  setInterval(() => {
+    syncData();
+  }, APP_CONFIG.SYNC_INTERVAL);
+}
+```
+
+---
+
+### Audit Configuration
+
+<ParamField path="LOG_ALL_ACTIONS" type="boolean" default="true">
+  Log all user actions for audit trail
+</ParamField>
+
+<ParamField path="MAX_AUDIT_RECORDS" type="number" default="1000">
+  Maximum number of audit records to retain
+</ParamField>
+
+**Example:**
+
+```javascript
+if (APP_CONFIG.LOG_ALL_ACTIONS) {
+  logActivity('PRICE_UPDATE', { details: 'Updated OMINT prices' });
+}
+```
+
+---
+
+### Data Management
+
+<ParamField path="BACKUP_INTERVAL" type="number" default="24">
+  Automatic backup interval in hours
+</ParamField>
+
+<ParamField path="MAX_HISTORY_RECORDS" type="number" default="100">
+  Maximum history records to maintain
+</ParamField>
+
+---
+
+### API Endpoints
+
+<Info>
+  API endpoints are currently disabled (empty strings) as the system uses localStorage.
+</Info>
+
+<ParamField path="API_BASE_URL" type="string" default="">
+  Base URL for backend API (future use)
+</ParamField>
+
+<ParamField path="BACKUP_ENDPOINT" type="string" default="/api/backup">
+  Endpoint for data backup
+</ParamField>
+
+<ParamField path="PRICES_ENDPOINT" type="string" default="/api/prices">
+  Endpoint for price data
+</ParamField>
+
+<ParamField path="SYNC_ENDPOINT" type="string" default="/api/sync">
+  Endpoint for data synchronization
+</ParamField>
+
+<ParamField path="AUDIT_ENDPOINT" type="string" default="/api/audit">
+  Endpoint for audit logs
+</ParamField>
+
+---
+
+### Notification Settings
+
+<ParamField path="ADMIN_EMAIL" type="string" default="">
+  Admin email for notifications (disabled)
+</ParamField>
+
+<ParamField path="SLACK_WEBHOOK" type="string" default="">
+  Slack webhook URL for notifications (future use)
+</ParamField>
+
+---
+
+### Plan Configuration
+
+<ParamField path="DEFAULT_CURRENCY" type="string" default="ARS">
+  Default currency code (Argentine Peso)
+</ParamField>
+
+<ParamField path="PRICE_PRECISION" type="number" default="0">
+  Decimal places for price display (0 = whole numbers)
+</ParamField>
+
+<ParamField path="MIN_PRICE" type="number" default="1000">
+  Minimum allowed price value
+</ParamField>
+
+<ParamField path="MAX_PRICE" type="number" default="500000">
+  Maximum allowed price value
+</ParamField>
+
+**Example:**
+
+```javascript
+const formattedPrice = new Intl.NumberFormat('es-AR', {
+  style: 'currency',
+  currency: APP_CONFIG.DEFAULT_CURRENCY,
+  minimumFractionDigits: APP_CONFIG.PRICE_PRECISION
+}).format(price);
+```
+
+---
+
+### UI Configuration
+
+<ParamField path="COMPANY_NAME" type="string" default="OSPADEP">
+  Company name for branding
+</ParamField>
+
+<ParamField path="LOGO_URL" type="string">
+  URL to company logo image
+  
+  Default: `https://i.postimg.cc/qBhxQhRv/482cc3df-6285-4fa0-93ea-8d1f008f9dbf.png`
+</ParamField>
+
+<ParamField path="THEME_COLOR" type="string" default="#1053F3">
+  Primary theme color (hex code)
+</ParamField>
+
+**Example:**
+
+```javascript
+document.querySelector('.header').style.backgroundColor = APP_CONFIG.THEME_COLOR;
+document.title = `${APP_CONFIG.COMPANY_NAME} - Cotizador`;
+```
+
+---
+
+## getConfig() Function
+
+The `getConfig()` function returns environment-specific configuration.
+
+```javascript
+function getConfig()
+```
+
+**Behavior:**
+
+- **Development Mode:**
+  - Disables password hashing (`ADMIN_PASSWORD_HASH: null`)
+  - Increases session timeout to 120 minutes
+  - Allows 10 login attempts
+  
+- **Production Mode:**
+  - Returns default CONFIG values
+  - Enforces strict security settings
+
+**Example:**
+
+```javascript
+window.APP_CONFIG = getConfig();
+
+if (APP_CONFIG.ENVIRONMENT === 'development') {
+  console.log('Development settings applied');
+  console.log('Session timeout:', APP_CONFIG.SESSION_TIMEOUT, 'minutes');
+}
+```
+
+---
+
+## Complete Configuration Example
+
+```javascript
+// Access configuration
+const config = window.APP_CONFIG;
+
+// Security
+if (config.SESSION_TIMEOUT < 60) {
+  console.warn('Short session timeout configured');
+}
+
+// Roles
+const isSuperAdmin = user.role === config.USER_ROLES.SUPER_ADMIN;
+
+// Sync
+if (config.AUTO_SYNC) {
+  startAutoSync(config.SYNC_INTERVAL);
+}
+
+// Audit
+if (config.LOG_ALL_ACTIONS) {
+  logActivity('APP_STARTED');
+}
+
+// Pricing
+const price = calculatePrice();
+if (price < config.MIN_PRICE || price > config.MAX_PRICE) {
+  console.error('Price out of bounds');
+}
+
+// UI
+document.querySelector('.logo').src = config.LOGO_URL;
+document.documentElement.style.setProperty('--theme-color', config.THEME_COLOR);
+```
+
+---
+
+## Environment Variables
+
+To switch between environments, modify the `ENVIRONMENT` field in `config.js`:
+
+```javascript
+const CONFIG = {
+  ENVIRONMENT: 'production', // Change to 'development' for dev mode
+  // ... rest of config
+};
+```

@@ -1,0 +1,277 @@
+---
+title: 'AuthenticationSystem'
+description: 'Complete API reference for the authentication system class'
+---
+
+## Overview
+
+The `AuthenticationSystem` class provides comprehensive user authentication, session management, and user administration capabilities for the OSPADEP platform.
+
+## Constructor
+
+```javascript
+const auth = new AuthenticationSystem();
+```
+
+Initializes the authentication system with:
+- User database loaded from localStorage
+- Active session restoration
+- Inactivity logout configuration
+- Default super admin account
+
+## User Management Methods
+
+### createUser()
+
+Creates a new user account with role-based permissions.
+
+```javascript
+auth.createUser(userData)
+```
+
+<ParamField path="userData" type="object" required>
+  User information object
+  
+  <ParamField path="username" type="string" required>
+    Unique username identifier
+  </ParamField>
+  
+  <ParamField path="password" type="string" required>
+    User password (minimum 6 characters)
+  </ParamField>
+  
+  <ParamField path="role" type="string" required>
+    User role: `super_admin`, `admin`, or `user`
+  </ParamField>
+  
+  <ParamField path="name" type="string" required>
+    Full name of the user
+  </ParamField>
+  
+  <ParamField path="email" type="string">
+    Email address (optional)
+  </ParamField>
+</ParamField>
+
+<ResponseField name="newUser" type="object">
+  Complete user object including:
+  - `id`: User identifier
+  - `username`: Username
+  - `role`: Assigned role
+  - `name`: Full name
+  - `email`: Email address
+  - `createdAt`: ISO timestamp
+  - `isActive`: Account status
+  - `permissions`: Array of permissions
+  - `createdBy`: Creator user ID
+</ResponseField>
+
+**Example:**
+
+```javascript
+const newUser = auth.createUser({
+  username: 'john_admin',
+  password: 'SecurePass123',
+  role: 'admin',
+  name: 'John Smith',
+  email: 'john@ospadep.com'
+});
+```
+
+**Throws:**
+- `Error`: If required fields are missing
+- `Error`: If username already exists
+- `Error`: If password is less than 6 characters
+
+---
+
+### updateUser()
+
+Updates an existing user's information.
+
+```javascript
+auth.updateUser(username, updates)
+```
+
+<ParamField path="username" type="string" required>
+  Username of the user to update
+</ParamField>
+
+<ParamField path="updates" type="object" required>
+  Object containing fields to update
+</ParamField>
+
+<ResponseField name="updatedUser" type="object">
+  Updated user object with all current data
+</ResponseField>
+
+**Example:**
+
+```javascript
+const updated = auth.updateUser('john_admin', {
+  name: 'John A. Smith',
+  email: 'john.smith@ospadep.com'
+});
+```
+
+---
+
+### deleteUser()
+
+Removes a user from the system.
+
+```javascript
+auth.deleteUser(username)
+```
+
+<ParamField path="username" type="string" required>
+  Username of the user to delete
+</ParamField>
+
+**Throws:**
+- `Error`: If user not found
+- `Error`: If attempting to delete superadmin
+- `Error`: If insufficient permissions
+
+---
+
+### loadUsers()
+
+Loads users from localStorage with fallback to defaults.
+
+```javascript
+const users = auth.loadUsers()
+```
+
+<ResponseField name="users" type="object">
+  Object containing all user accounts indexed by username
+</ResponseField>
+
+---
+
+### getDefaultPermissions()
+
+Returns default permissions array for a given role.
+
+```javascript
+auth.getDefaultPermissions(role)
+```
+
+<ParamField path="role" type="string" required>
+  User role: `super_admin`, `admin`, or `user`
+</ParamField>
+
+<ResponseField name="permissions" type="array">
+  Array of permission strings:
+  - `super_admin`: `['all']`
+  - `admin`: `['price_update', 'plan_management', 'view_reports']`
+  - `user`: `['view_plans', 'generate_quotes']`
+</ResponseField>
+
+---
+
+## Authentication Methods
+
+### login()
+
+Authenticates a user and creates a session.
+
+```javascript
+await auth.login(username, password)
+```
+
+<ParamField path="username" type="string" required>
+  User's username
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  User's password
+</ParamField>
+
+<ResponseField name="result" type="object">
+  Login result containing:
+  - `success`: Boolean indicating login success
+  - `user`: User object with session information
+  - `sessionId`: Unique session identifier
+</ResponseField>
+
+**Example:**
+
+```javascript
+try {
+  const result = await auth.login('john_admin', 'SecurePass123');
+  console.log('Logged in:', result.user.name);
+} catch (error) {
+  console.error('Login failed:', error.message);
+}
+```
+
+---
+
+### canManageUser()
+
+Checks if the current user can manage another user.
+
+```javascript
+auth.canManageUser(targetUsername)
+```
+
+<ParamField path="targetUsername" type="string" required>
+  Username of the target user
+</ParamField>
+
+<ResponseField name="canManage" type="boolean">
+  - `true`: Current user can manage target user
+  - `false`: Insufficient permissions
+</ResponseField>
+
+**Permission Rules:**
+- Super admins can manage all users
+- Admins can manage regular users only
+- Users cannot manage other users
+
+---
+
+## Session Properties
+
+### currentSession
+
+```javascript
+auth.currentSession
+```
+
+<ResponseField name="currentSession" type="object">
+  Current session object containing:
+  - `userId`: Logged in user ID
+  - `sessionId`: Unique session identifier
+  - `loginTime`: ISO timestamp of login
+  - `lastActivity`: Last activity timestamp
+</ResponseField>
+
+---
+
+### sessionTimeout
+
+```javascript
+auth.sessionTimeout // 28800000 (8 hours in milliseconds)
+```
+
+Default session timeout duration.
+
+---
+
+## Storage
+
+All user data is persisted to `localStorage` with the key `ospadep_users`. Active sessions are stored separately with audit logging for security compliance.
+
+---
+
+## Default Admin Account
+
+The system includes a default super admin:
+
+- **Username:** `ospadep_admin_2024`
+- **Role:** `super_admin`
+- **Permissions:** `['all']`
+
+This account is automatically created on first initialization.

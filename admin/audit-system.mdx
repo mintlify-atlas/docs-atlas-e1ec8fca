@@ -1,0 +1,730 @@
+---
+title: 'Sistema de Auditoría'
+description: 'Registro y monitoreo de actividades administrativas'
+icon: 'clipboard-list'
+---
+
+## Descripción General
+
+El sistema de auditoría registra automáticamente todas las acciones realizadas en el panel administrativo, proporcionando trazabilidad completa para fines de control, seguridad y análisis.
+
+<Info>
+  Todos los eventos se almacenan localmente en el navegador usando `localStorage` con un límite configurable de registros.
+</Info>
+
+## ¿Qué se Registra?
+
+### Eventos de Autenticación
+
+El sistema registra todas las actividades relacionadas con el acceso:
+
+<AccordionGroup>
+  <Accordion title="Inicio de Sesión (LOGIN_SUCCESS)">
+    **Información capturada:**
+    - ID de usuario
+    - Rol del usuario (admin, super_admin)
+    - Timestamp exacto
+    - ID de sesión generado
+    - Dirección IP (si está disponible)
+    
+    **Ejemplo:**
+    ```json
+    {
+      "action": "LOGIN_SUCCESS",
+      "userId": "admin_user",
+      "userRole": "admin",
+      "timestamp": "2025-03-05T14:30:00.000Z",
+      "sessionId": "abc123xyz456",
+      "details": {
+        "username": "admin_user",
+        "role": "admin"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Intento Fallido (LOGIN_FAILED)">
+    **Información capturada:**
+    - Nombre de usuario intentado
+    - Razón del fallo
+    - Timestamp
+    - User agent
+    
+    **Ejemplo:**
+    ```json
+    {
+      "action": "LOGIN_FAILED",
+      "userId": "anonymous",
+      "timestamp": "2025-03-05T14:28:00.000Z",
+      "details": {
+        "username": "wrong_user",
+        "reason": "invalid_password"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Cierre de Sesión (LOGOUT)">
+    **Información capturada:**
+    - ID de usuario
+    - Duración de la sesión (minutos)
+    - Timestamp
+    
+    **Ejemplo:**
+    ```json
+    {
+      "action": "LOGOUT",
+      "userId": "admin_user",
+      "timestamp": "2025-03-05T16:45:00.000Z",
+      "details": {
+        "username": "admin_user",
+        "sessionDuration": 135
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Sesión Expirada (SESSION_EXPIRED)">
+    **Información capturada:**
+    - Usuario cuya sesión expiró
+    - Timestamp de expiración
+    - Razón (timeout, inactividad)
+    
+    **Ejemplo:**
+    ```json
+    {
+      "action": "SESSION_EXPIRED",
+      "userId": "admin_user",
+      "timestamp": "2025-03-05T23:00:00.000Z",
+      "details": {
+        "username": "admin_user",
+        "expiredAt": "2025-03-05T23:00:00.000Z"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Eventos de Gestión de Precios
+
+<CardGroup cols={2}>
+  <Card title="Aumento Masivo" icon="arrow-trend-up">
+    **Registra:**
+    - Porcentaje aplicado
+    - Categoría afectada
+    - Cantidad de planes modificados
+    - Detalles de cada cambio
+    
+    ```javascript
+    action: 'BULK_INCREASE'
+    details: {
+      percentage: 1.5,
+      category: 'all',
+      plansAffected: 50
+    }
+    ```
+  </Card>
+  
+  <Card title="Descuento Masivo" icon="arrow-trend-down">
+    **Registra:**
+    - Porcentaje de descuento
+    - Categoría afectada
+    - Planes modificados
+    - Cambios específicos
+    
+    ```javascript
+    action: 'BULK_DECREASE'
+    details: {
+      percentage: 10,
+      category: 'familiar',
+      plansAffected: 25
+    }
+    ```
+  </Card>
+  
+  <Card title="Edición Individual" icon="pen-to-square">
+    **Registra:**
+    - Plan modificado
+    - Precio anterior
+    - Precio nuevo
+    - Diferencia calculada
+    
+    ```javascript
+    action: 'INDIVIDUAL_UPDATE'
+    details: {
+      plan: 'OMINT Plan 4500',
+      oldPrice: 189278,
+      newPrice: 195000,
+      change: 5722
+    }
+    ```
+  </Card>
+  
+  <Card title="Restauración" icon="clock-rotate-left">
+    **Registra:**
+    - Timestamp de restauración
+    - Usuario que ejecutó
+    - Cantidad de planes restaurados
+    
+    ```javascript
+    action: 'PRICE_RESTORE'
+    details: {
+      description: 'Restaurados a valores originales',
+      plansAffected: 50
+    }
+    ```
+  </Card>
+</CardGroup>
+
+### Eventos de Gestión de Usuarios
+
+<Info>
+  Solo disponible para usuarios con rol SuperAdmin.
+</Info>
+
+<Tabs>
+  <Tab title="Creación (USER_CREATED)">
+    **Información capturada:**
+    - Nuevo usuario creado
+    - Rol asignado
+    - Usuario que lo creó
+    - Timestamp
+    
+    ```json
+    {
+      "action": "USER_CREATED",
+      "userId": "superadmin",
+      "timestamp": "2025-03-05T10:00:00.000Z",
+      "details": {
+        "newUser": "new_admin",
+        "role": "admin",
+        "createdBy": "superadmin"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Actualización (USER_UPDATED)">
+    **Información capturada:**
+    - Usuario modificado
+    - Campos actualizados
+    - Usuario que realizó la acción
+    
+    ```json
+    {
+      "action": "USER_UPDATED",
+      "userId": "superadmin",
+      "timestamp": "2025-03-05T11:30:00.000Z",
+      "details": {
+        "updatedUser": "admin_user",
+        "changes": ["role", "permissions"],
+        "updatedBy": "superadmin"
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Eliminación (USER_DELETED)">
+    **Información capturada:**
+    - Usuario eliminado
+    - Usuario que ejecutó la eliminación
+    - Timestamp
+    
+    ```json
+    {
+      "action": "USER_DELETED",
+      "userId": "superadmin",
+      "timestamp": "2025-03-05T15:00:00.000Z",
+      "details": {
+        "deletedUser": "old_admin",
+        "deletedBy": "superadmin"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Eventos de Exportación
+
+```javascript
+// Exportación de configuración
+{
+  "action": "CONFIG_EXPORT",
+  "userId": "admin_user",
+  "timestamp": "2025-03-05T17:00:00.000Z",
+  "details": {
+    "recordCount": 50,
+    "includesHistory": true
+  }
+}
+
+// Exportación de auditoría
+{
+  "action": "AUDIT_EXPORT",
+  "userId": "superadmin",
+  "timestamp": "2025-03-05T17:30:00.000Z",
+  "details": {
+    "recordCount": 1000
+  }
+}
+```
+
+## Estructura de un Registro
+
+### Formato Completo
+
+Cada entrada del log de auditoría sigue esta estructura:
+
+```typescript
+interface AuditLogEntry {
+  id: number;                    // Timestamp en milisegundos
+  action: string;                // Tipo de acción
+  userId: string;                // ID del usuario
+  username: string;              // Nombre de usuario
+  userRole: string;              // Rol del usuario
+  timestamp: string;             // ISO 8601 timestamp
+  details: object;               // Detalles específicos
+  sessionId: string | null;      // ID de sesión
+  url: string;                   // URL donde ocurrió
+  userAgent: string;             // Navegador y sistema
+}
+```
+
+### Ejemplo Completo
+
+```json
+{
+  "id": 1732895600000,
+  "action": "BULK_INCREASE",
+  "userId": "admin_user",
+  "username": "admin_user",
+  "userRole": "admin",
+  "timestamp": "2025-03-05T14:30:00.000Z",
+  "details": {
+    "percentage": 1.5,
+    "category": "all",
+    "plansAffected": 50,
+    "changes": [
+      {
+        "plan": "OMINT Plan 4500",
+        "category": "familiar",
+        "oldPrice": 189278,
+        "newPrice": 192119,
+        "change": 2841
+      }
+    ]
+  },
+  "sessionId": "abc123xyz456",
+  "url": "https://ospadep.com/admin",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36..."
+}
+```
+
+## Consultar Logs de Auditoría
+
+### Acceso al Sistema
+
+<Steps>
+  <Step title="Iniciar sesión como Admin">
+    Solo usuarios con rol Admin o SuperAdmin pueden acceder a los logs.
+  </Step>
+  
+  <Step title="Navegar a Auditoría">
+    En el panel administrativo, busca la sección **"Auditoría"** o **"Logs"**.
+  </Step>
+  
+  <Step title="Visualizar registros">
+    Los logs se muestran en orden cronológico descendente (más recientes primero).
+  </Step>
+</Steps>
+
+### Código de Acceso
+
+```javascript
+// Obtener logs (auth-system.js:495)
+getAuditLog() {
+  if (!this.isAdmin()) {
+    throw new Error('No tienes permisos para ver el log de auditoría');
+  }
+  
+  return JSON.parse(localStorage.getItem('ospadep_audit_log') || '[]');
+}
+```
+
+## Filtrado y Búsqueda
+
+### Filtros Disponibles
+
+El sistema permite filtrar logs por múltiples criterios:
+
+<Tabs>
+  <Tab title="Por Usuario">
+    **Filtrar logs de un usuario específico:**
+    
+    ```javascript
+    const filters = {
+      userId: 'admin_user'
+    };
+    
+    const userLogs = window.UserManager.getAuditLog(filters);
+    // Retorna solo los registros de 'admin_user'
+    ```
+  </Tab>
+  
+  <Tab title="Por Acción">
+    **Filtrar por tipo de acción:**
+    
+    ```javascript
+    const filters = {
+      action: 'BULK_INCREASE'
+    };
+    
+    const increaseLogs = window.UserManager.getAuditLog(filters);
+    // Retorna solo aumentos masivos
+    ```
+  </Tab>
+  
+  <Tab title="Por Rango de Fechas">
+    **Filtrar entre dos fechas:**
+    
+    ```javascript
+    const filters = {
+      dateFrom: '2025-03-01T00:00:00.000Z',
+      dateTo: '2025-03-31T23:59:59.999Z'
+    };
+    
+    const marchLogs = window.UserManager.getAuditLog(filters);
+    // Retorna logs de marzo 2025
+    ```
+  </Tab>
+  
+  <Tab title="Combinado">
+    **Aplicar múltiples filtros:**
+    
+    ```javascript
+    const filters = {
+      userId: 'superadmin',
+      action: 'USER_CREATED',
+      dateFrom: '2025-03-01T00:00:00.000Z'
+    };
+    
+    const results = window.UserManager.getAuditLog(filters);
+    // Usuarios creados por superadmin desde marzo
+    ```
+  </Tab>
+</Tabs>
+
+### Función de Filtrado
+
+```javascript
+// user-system.js:205
+getAuditLog(filters = {}) {
+  const auditLog = JSON.parse(
+    localStorage.getItem('ospadep_audit_log') || '[]'
+  );
+  
+  let filteredLog = auditLog;
+  
+  // Aplicar filtro de usuario
+  if (filters.userId) {
+    filteredLog = filteredLog.filter(
+      entry => entry.userId === filters.userId
+    );
+  }
+  
+  // Aplicar filtro de acción
+  if (filters.action) {
+    filteredLog = filteredLog.filter(
+      entry => entry.action === filters.action
+    );
+  }
+  
+  // Aplicar filtro de fecha desde
+  if (filters.dateFrom) {
+    filteredLog = filteredLog.filter(
+      entry => new Date(entry.timestamp) >= new Date(filters.dateFrom)
+    );
+  }
+  
+  // Aplicar filtro de fecha hasta
+  if (filters.dateTo) {
+    filteredLog = filteredLog.filter(
+      entry => new Date(entry.timestamp) <= new Date(filters.dateTo)
+    );
+  }
+  
+  // Ordenar por fecha descendente
+  return filteredLog.sort(
+    (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+  );
+}
+```
+
+## Exportar Logs
+
+### Proceso de Exportación
+
+<Steps>
+  <Step title="Acceder a la función">
+    En el panel de auditoría, haz clic en **"Exportar Logs"**.
+  </Step>
+  
+  <Step title="Descarga automática">
+    Se descargará un archivo JSON con todos los registros:
+    
+    `ospadep_auditoria_2025-03-05.json`
+  </Step>
+  
+  <Step title="Contenido del archivo">
+    El archivo incluye:
+    - Fecha de exportación
+    - Total de registros
+    - Todos los logs con detalles completos
+  </Step>
+</Steps>
+
+### Estructura del Archivo Exportado
+
+```json
+{
+  "exportDate": "2025-03-05T17:30:00.000Z",
+  "totalRecords": 1000,
+  "records": [
+    {
+      "id": 1732895600000,
+      "action": "LOGIN_SUCCESS",
+      "userId": "admin_user",
+      "timestamp": "2025-03-05T14:30:00.000Z",
+      "details": { ... }
+    },
+    {
+      "id": 1732895601000,
+      "action": "BULK_INCREASE",
+      "userId": "admin_user",
+      "timestamp": "2025-03-05T14:31:00.000Z",
+      "details": { ... }
+    }
+  ]
+}
+```
+
+### Código de Exportación
+
+```javascript
+// user-system.js:231
+exportAuditLog() {
+  const auditLog = this.getAuditLog();
+  const exportData = {
+    exportDate: new Date().toISOString(),
+    totalRecords: auditLog.length,
+    records: auditLog
+  };
+  
+  const dataStr = JSON.stringify(exportData, null, 2);
+  const dataBlob = new Blob([dataStr], {type: 'application/json'});
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `ospadep_auditoria_${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  
+  this.logActivity('AUDIT_EXPORT', { 
+    recordCount: auditLog.length 
+  });
+}
+```
+
+## Política de Retención
+
+### Límites Configurables
+
+<Info>
+  El sistema mantiene un número máximo de registros para evitar problemas de rendimiento.
+</Info>
+
+**Configuración por defecto:**
+```javascript
+// config.js
+APP_CONFIG = {
+  MAX_AUDIT_RECORDS: 1000  // Máximo de registros
+}
+```
+
+### Rotación Automática
+
+Cuando se alcanza el límite:
+
+1. Se mantienen los registros más recientes
+2. Los registros antiguos se eliminan automáticamente
+3. El proceso es transparente para el usuario
+
+```javascript
+// user-system.js:192
+saveToAuditLog(entry) {
+  let auditLog = JSON.parse(
+    localStorage.getItem('ospadep_audit_log') || '[]'
+  );
+  
+  auditLog.push(entry);
+  
+  // Mantener solo los últimos registros
+  if (auditLog.length > APP_CONFIG.MAX_AUDIT_RECORDS) {
+    auditLog = auditLog.slice(-APP_CONFIG.MAX_AUDIT_RECORDS);
+  }
+  
+  localStorage.setItem('ospadep_audit_log', JSON.stringify(auditLog));
+}
+```
+
+### Recomendaciones
+
+<Warning>
+  Exporta los logs regularmente para mantener un historial completo fuera del navegador.
+</Warning>
+
+**Frecuencia recomendada de exportación:**
+- **Mensual**: Para análisis de tendencias
+- **Antes de alcanzar el límite**: Para no perder registros antiguos
+- **Después de cambios importantes**: Como respaldo de eventos críticos
+
+## Estadísticas de Uso
+
+### Panel de Estadísticas (SuperAdmin)
+
+Los SuperAdmin tienen acceso a estadísticas agregadas:
+
+```javascript
+// auth-system.js:504
+getUserStats() {
+  if (!this.isAdmin()) {
+    throw new Error('No tienes permisos para ver estadísticas');
+  }
+  
+  const auditLog = this.getAuditLog();
+  const stats = {
+    totalSessions: 0,
+    totalActions: auditLog.length,
+    todayActivity: 0,
+    userActivity: {}
+  };
+
+  const today = new Date().toDateString();
+  
+  auditLog.forEach(entry => {
+    // Contar actividad de hoy
+    if (new Date(entry.timestamp).toDateString() === today) {
+      stats.todayActivity++;
+    }
+    
+    // Contar por usuario
+    if (!stats.userActivity[entry.userId]) {
+      stats.userActivity[entry.userId] = {
+        totalActions: 0,
+        lastActivity: entry.timestamp,
+        role: entry.userRole
+      };
+    }
+    
+    stats.userActivity[entry.userId].totalActions++;
+    
+    // Contar sesiones
+    if (entry.action === 'LOGIN_SUCCESS') {
+      stats.totalSessions++;
+    }
+  });
+
+  return stats;
+}
+```
+
+### Ejemplo de Estadísticas
+
+```json
+{
+  "totalSessions": 45,
+  "totalActions": 1000,
+  "todayActivity": 28,
+  "userActivity": {
+    "admin_user": {
+      "totalActions": 450,
+      "lastActivity": "2025-03-05T17:30:00.000Z",
+      "role": "admin"
+    },
+    "superadmin": {
+      "totalActions": 550,
+      "lastActivity": "2025-03-05T16:00:00.000Z",
+      "role": "super_admin"
+    }
+  }
+}
+```
+
+## Seguridad y Privacidad
+
+### Protección de Datos
+
+<Info>
+  Los logs se almacenan localmente en el navegador y no se transmiten a servidores externos.
+</Info>
+
+**Medidas de seguridad:**
+- Solo usuarios autorizados pueden acceder a los logs
+- Las contraseñas nunca se registran en los logs
+- Los datos sensibles se omiten o enmascaran
+
+### Control de Acceso
+
+```javascript
+// Verificación de permisos
+if (!window.AuthSystem.isAdmin()) {
+  throw new Error('Acceso denegado: se requiere rol Admin');
+}
+```
+
+### Datos No Registrados
+
+<Warning>
+  El sistema NO registra:
+</Warning>
+
+- Contraseñas en texto plano
+- Datos personales de clientes
+- Información financiera sensible
+- Tokens de sesión completos
+
+## Resolución de Problemas
+
+### No puedo ver los logs
+
+**Soluciones:**
+- Verifica que tengas rol Admin o SuperAdmin
+- Confirma que estés autenticado correctamente
+- Verifica que `localStorage` esté habilitado en tu navegador
+
+### Los logs se están borrando
+
+**Causas comunes:**
+- Se alcanzó el límite de 1000 registros (configurable)
+- El navegador está limpiando el almacenamiento local
+- Hay otro usuario o proceso limpiando los logs
+
+**Solución:** Exporta los logs regularmente
+
+### No encuentro un registro específico
+
+**Recomendaciones:**
+- Usa los filtros por fecha, usuario o acción
+- Exporta los logs y búscalos en un editor de texto
+- Verifica que el evento haya ocurrido dentro del límite de retención
+
+## Próximos Pasos
+
+<CardGroup cols={2}>
+  <Card title="Panel de Administración" icon="gear" href="/admin/admin-panel">
+    Vuelve a la guía principal del panel administrativo.
+  </Card>
+  
+  <Card title="Gestión de Precios" icon="dollar-sign" href="/admin/price-management">
+    Aprende sobre la gestión individual de precios.
+  </Card>
+</CardGroup>

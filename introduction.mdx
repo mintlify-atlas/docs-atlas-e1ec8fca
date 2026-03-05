@@ -1,0 +1,147 @@
+---
+title: Introduction
+description: Healthcare plan quotation system for OSPADEP members with dynamic pricing and multi-user administration
+---
+
+## What is Cotizador Online OSPADEP?
+
+Cotizador Online OSPADEP is a comprehensive healthcare plan quotation system designed specifically for OSPADEP (Obra Social del Personal de Aeronavegación de Entes Privados) members. The platform enables users to compare and quote healthcare plans from multiple providers with real-time pricing and personalized recommendations.
+
+<Note>
+  Prices are updated monthly. Current version: **February 2026**
+</Note>
+
+## Who It's For
+
+The system serves two primary audiences:
+
+<CardGroup cols={2}>
+  <Card title="OSPADEP Members" icon="user">
+    Healthcare professionals seeking coverage for themselves and their families through a streamlined quotation process
+  </Card>
+  <Card title="Administrators" icon="shield">
+    System administrators managing pricing, user accounts, and monitoring quotation activity
+  </Card>
+</CardGroup>
+
+## Key Capabilities
+
+### For Members
+
+- **Multi-step quotation flow**: Intuitive 3-step process from plan selection to final quotation
+- **Multiple healthcare providers**: Compare plans from OMINT, Swiss Medical, Medicus, Galeno, Activa Salud, MEDIFE, and OSPADEP Salud
+- **Personalized pricing**: Age-based calculations with family composition support
+- **No account required**: Start quoting immediately without registration
+
+### For Administrators
+
+- **Dynamic pricing management**: Update prices by percentage or individually
+- **Multi-user system**: Role-based access control (Super Admin, Admin, User)
+- **Audit logging**: Complete activity tracking and session management
+- **Price history**: Track all pricing changes with automatic versioning
+- **External data management**: JSON-based pricing system for easy updates
+
+## System Architecture
+
+### Frontend Architecture
+
+```javascript
+// Core components loaded on page initialization
+config.js         // System configuration and environment settings
+security.js       // Security utilities and validation
+user-system.js    // User session and role management
+auth-system.js    // Authentication and authorization
+script.js         // Quotation logic and price calculation
+```
+
+### Data Architecture
+
+The system uses a hybrid storage approach:
+
+<CardGroup cols={2}>
+  <Card title="External Pricing Data" icon="database">
+    `precios-data.json` - External file containing all healthcare provider plans and pricing structures, updated monthly
+  </Card>
+  <Card title="Local Storage" icon="hard-drive">
+    Browser localStorage for user sessions, audit logs, and temporary quotation data
+  </Card>
+</CardGroup>
+
+### Pricing Structure Types
+
+The system supports multiple pricing structures to accommodate different provider models:
+
+| Structure Type | Description | Providers |
+|----------------|-------------|----------|
+| **estructura_compleja** | Age-based pricing with role differentiation (adult, spouse, children) | OMINT, Activa Salud, OSPADEP Salud |
+| **plantilla_adultos_solo** | All family members priced as adults, age-based only | Swiss Medical |
+| **plantilla_adultos_simple** | Simplified 2-tier age groups (≤65, >65) | SW Nubial, Swiss |
+| **estructura_matrimonio_hijos** | Separate pricing for individual, spouse, and children categories | MEDIFE |
+
+### Authentication System
+
+The platform includes a comprehensive authentication system powered by `auth-system.js`:
+
+```javascript
+// Default credentials (located in auth-system.js:35-46)
+username: 'ospadep_admin_2024'
+password: 'OSPADEP_SecureAdmin_2024!'
+role: 'super_admin'
+```
+
+**Session Management:**
+- 8-hour session timeout with automatic extension on activity
+- 30-minute inactivity auto-logout
+- Session restoration on page reload
+- Complete audit trail of all login/logout events
+
+## Healthcare Providers
+
+The system supports plans from 7 major healthcare providers:
+
+<CardGroup cols={3}>
+  <Card title="OMINT" icon="heartbeat">
+    5 plans (2500, 4500, 6500, 8500, Comunidad) with age-based family pricing
+  </Card>
+  <Card title="Swiss Medical" icon="hospital">
+    3 plans (PO62, PO64, SB04) with simplified adult pricing
+  </Card>
+  <Card title="MEDIFE" icon="stethoscope">
+    3 tiers (Bronce, Plata, Oro) with family structure pricing
+  </Card>
+  <Card title="Activa Salud" icon="plus-circle">
+    5 plans (AS25, AS300, AS700, AS800, AS900) with per-capita pricing
+  </Card>
+  <Card title="OSPADEP Salud" icon="shield-heart">
+    3 plans (OS25, OS300, OS900) with member/particular pricing tiers
+  </Card>
+  <Card title="Swiss / SW Nubial" icon="briefcase-medical">
+    Regional plans (SB02, MS) for specific coverage areas
+  </Card>
+</CardGroup>
+
+## Get Started
+
+Ready to use the system? Continue to the next sections:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Learn how to create your first quotation in minutes
+  </Card>
+  <Card title="Features" icon="list" href="/features">
+    Explore all system capabilities in detail
+  </Card>
+</CardGroup>
+
+## Technical Specifications
+
+- **Technology Stack**: Pure JavaScript (ES6+), HTML5, CSS3
+- **Data Format**: JSON for external pricing data
+- **Storage**: Browser localStorage for session and audit data
+- **Architecture**: Client-side SPA (Single Page Application)
+- **Price Updates**: Monthly via `precios-data.json` file replacement
+- **Browser Support**: Modern browsers with localStorage support
+
+<Warning>
+  This is a client-side application. All data is stored locally in the browser. For production deployment, consider implementing server-side authentication and data persistence.
+</Warning>

@@ -1,0 +1,421 @@
+---
+title: 'Healthcare Plans'
+description: 'Plan types, structures, and provider-specific configurations'
+---
+
+## Overview
+
+Healthcare plans in OSPADEP are organized by provider with provider-specific pricing models and features.
+
+---
+
+## Plan Providers
+
+### OMINT
+
+**Pricing Model:** Role-based with age brackets
+
+**Available Plans:**
+- `plan2500`: Economic plan
+- `plan4500`: Intermediate plan
+- `plan6500`: Comprehensive plan (recommended)
+- `plan8500`: Premium plan
+- `planComunidad`: Community plan without copayments
+
+**Age Brackets:**
+- 0-25 years
+- 26-35 years
+- 36-54 years
+- 55-59 years
+- 60+ years
+
+**Pricing Roles:**
+```javascript
+{
+  adultoConyugue: number,    // Primary holder and spouse
+  hijo1Menor: number,        // First child under 25
+  hijo2MasMenores: number    // Additional children under 25
+}
+```
+
+**Example Plan:**
+
+```json
+{
+  "name": "PLAN 6500",
+  "type": "omint",
+  "preciosPorEdad": {
+    "26-35": {
+      "adultoConyugue": 227182,
+      "hijo1Menor": 138785,
+      "hijo2MasMenores": 120514
+    }
+  },
+  "features": [
+    "Cobertura integral OMINT",
+    "Red de prestadores nivel 6500",
+    "Internación en habitación privada",
+    "Consultas médicas sin límite"
+  ],
+  "recommended": true
+}
+```
+
+---
+
+### Swiss Medical
+
+**Pricing Model:** Simple age-based (all members as adults)
+
+**Available Plans:**
+- `po62`: Comprehensive coverage
+- `po64`: Premium coverage (recommended)
+- `sb04`: Basic coverage
+
+**Age Brackets:**
+- ≤65 years
+- >65 years
+
+**Pricing Structure:**
+```javascript
+{
+  "≤65": 332704,
+  ">65": 965409
+}
+```
+
+**Key Features:**
+- No discounts for children
+- All family members charged as adults
+- Only two age groups
+- Premium provider network
+
+**Example Plan:**
+
+```json
+{
+  "name": "PLAN PO64",
+  "type": "swiss_medical",
+  "preciosPorEdad": {
+    "≤65": 332704,
+    ">65": 965409
+  },
+  "features": [
+    "Cobertura premium SWISS MEDICAL",
+    "Red de prestadores PO64",
+    "Consultas médicas sin límite",
+    "Internación en habitación privada",
+    "Emergencias 24hs prioritarias",
+    "Estudios de alta complejidad"
+  ],
+  "recommended": true
+}
+```
+
+---
+
+### MEDIFE
+
+**Pricing Model:** Individual/couple/family structure
+
+**Available Plans:**
+- `bronce`: Basic plan
+- `plata`: Standard plan (recommended)
+- `oro`: Premium plan
+
+**Age Brackets:**
+- 0-29 years
+- 30-39 years
+- 40-49 years
+- 50-59 years
+- 60+ years
+
+**Pricing Categories:**
+```javascript
+{
+  individual: {      // Single person rates
+    "0-29": 146277,
+    "30-39": 185174,
+    // ...
+  },
+  conyuge: {         // Spouse rates
+    "0-29": 127766,
+    // ...
+  },
+  matrimonio: {      // Pre-calculated couple rates
+    "0-29": 274043,
+    // ...
+  },
+  hijos: {
+    primerHijo: 124323,      // First child under 21
+    segundoHijo: 90869,       // Second child under 21
+    hijoAdulto: 146668,       // Adult child (21-29)
+    familiarCargo: 397819     // Dependent family member
+  }
+}
+```
+
+**Example Plan:**
+
+```json
+{
+  "name": "PLAN PLATA",
+  "type": "medife",
+  "precios": {
+    "individual": {
+      "30-39": 185174,
+      "40-49": 233581
+    },
+    "matrimonio": {
+      "30-39": 338143,
+      "40-49": 440396
+    },
+    "hijos": {
+      "primerHijo": 124323,
+      "segundoHijo": 90869
+    }
+  },
+  "features": [
+    "Plan estándar MEDIFE",
+    "Cobertura ampliada",
+    "Red de prestadores completa",
+    "Emergencias 24hs prioritarias"
+  ],
+  "recommended": true
+}
+```
+
+---
+
+### OSPADEP SALUD
+
+**Pricing Model:** Fine-grained age brackets with dual pricing
+
+**Available Plans:**
+- `os25`: Basic plan
+- `os300`: Intermediate plan (recommended)
+- `os900`: Premium plan
+
+**Age Brackets:**
+- 18-27, 28-35, 36-40, 41-45, 46-50, 51-55, 56-64, 65+
+
+**Pricing Types:**
+- `preciosPorEdad`: Corporate/employee pricing
+- `preciosPorEdadParticular`: Individual pricing
+
+**Pricing Structure:**
+```javascript
+{
+  "preciosPorEdad": {
+    "28-35": {
+      "adultoConyugue": 93754,
+      "hijoMenor": 57190
+    }
+  },
+  "preciosPorEdadParticular": {
+    "28-35": {
+      "adultoConyugue": 103598,
+      "hijoMenor": 63195
+    }
+  }
+}
+```
+
+**Example Plan:**
+
+```json
+{
+  "name": "PLAN OS300",
+  "type": "ospadep_salud",
+  "preciosPorEdad": {
+    "28-35": {
+      "adultoConyugue": 93754,
+      "hijoMenor": 57190
+    },
+    "36-40": {
+      "adultoConyugue": 93754,
+      "hijoMenor": 57190
+    }
+  },
+  "features": [
+    "Plan intermedio OSPADEP SALUD",
+    "Cobertura ampliada",
+    "Emergencias 24hs prioritarias",
+    "Consultas médicas sin límite"
+  ],
+  "recommended": true
+}
+```
+
+---
+
+### Activa Salud
+
+**Pricing Model:** Flat rate or simple age-based
+
+**Available Plans:**
+- `as25`: Basic plan
+- `as300`: Standard plan (age-based)
+- `as700`: Superior plan
+- `as800`: Maximum coverage
+- `as900`: Complete coverage
+
+**Pricing Structure:**
+
+```javascript
+// Most plans: Single flat rate
+{
+  "≤100": 76876
+}
+
+// AS300: Two age groups
+{
+  "≤65": 88704,
+  ">65": 133266
+}
+```
+
+**Example Plans:**
+
+```json
+{
+  "name": "PLAN AS 300",
+  "type": "activa_salud",
+  "preciosPorEdad": {
+    "≤65": 88704,
+    ">65": 133266
+  },
+  "features": [
+    "Plan AS 300 ACTIVA SALUD",
+    "Cobertura integral",
+    "Emergencias 24hs",
+    "Consultas ilimitadas"
+  ],
+  "recommended": false
+}
+```
+
+---
+
+### SW Nubial
+
+**Pricing Model:** Simple age-based (CABA/GBA only)
+
+**Available Plans:**
+- `ms`: Exclusive plan for Capital Federal and GBA
+
+**Age Brackets:**
+- ≤65 years
+- >65 years
+
+**Pricing Structure:**
+```javascript
+{
+  "≤65": 183669,
+  ">65": 521780
+}
+```
+
+**Geographic Restriction:** Only available in Capital Federal and Greater Buenos Aires.
+
+---
+
+### SWISS (Basic)
+
+**Pricing Model:** Simple age-based
+
+**Available Plans:**
+- `sb02`: Basic national coverage
+
+**Age Brackets:**
+- ≤65 years
+- >65 years
+
+**Pricing Structure:**
+```javascript
+{
+  "≤65": 213489,
+  ">65": 724377
+}
+```
+
+---
+
+## Plan Features
+
+Common features across plans:
+
+### Coverage Features
+- Medical consultations (unlimited or limited)
+- Emergency services 24/7
+- Diagnostic studies (basic/intermediate/complex)
+- Hospitalization (private room or shared)
+- Dental coverage (complete/basic/none)
+- Preventive medicine
+- High complexity procedures
+
+### Network Features
+- Provider network level (2500, 4500, 6500, 8500 for OMINT)
+- Geographic coverage (national, CABA/GBA)
+- VIP/Priority access
+- International coverage
+
+---
+
+## Recommended Flag
+
+```javascript
+"recommended": true
+```
+
+Plans marked as `recommended` are:
+- Best value for money
+- Most popular with clients
+- Highlighted in the UI
+- Typically mid-tier plans with comprehensive coverage
+
+**Recommended Plans by Provider:**
+- OMINT: Plan 6500
+- Swiss Medical: PO64
+- MEDIFE: Plata
+- OSPADEP SALUD: OS300
+
+---
+
+## Plan Selection Logic
+
+```javascript
+// Get all plans from a provider
+const omintPlans = prestadoresData.omint.planes;
+
+// Filter recommended plans
+const recommendedPlans = Object.entries(omintPlans)
+  .filter(([key, plan]) => plan.recommended)
+  .map(([key, plan]) => plan);
+
+// Get plan by key
+const plan6500 = omintPlans.plan6500;
+
+// Check features
+if (plan6500.features.includes('Internación en habitación privada')) {
+  console.log('Private room included');
+}
+```
+
+---
+
+## Plan Comparison
+
+```javascript
+function comparePlans(plan1, plan2, age = 35) {
+  const price1 = getPriceForAge(plan1, age);
+  const price2 = getPriceForAge(plan2, age);
+  
+  return {
+    plan1: { name: plan1.name, price: price1 },
+    plan2: { name: plan2.name, price: price2 },
+    difference: Math.abs(price1 - price2),
+    cheaper: price1 < price2 ? plan1.name : plan2.name
+  };
+}
+```

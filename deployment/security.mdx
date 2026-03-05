@@ -1,0 +1,471 @@
+---
+title: 'Security Configuration'
+description: 'Production security best practices and configuration for OSPADEP'
+---
+
+## Security Overview
+
+Cotizador Online OSPADEP implements multiple layers of security to protect sensitive healthcare pricing data and admin access.
+
+<Warning>
+Never commit passwords, API keys, or other sensitive data to your repository. Always use environment variables or secure configuration management.
+</Warning>
+
+## Production Security Checklist
+
+### Essential Security (Option 1)
+
+<Steps>
+  <Step title="Password Hashing">
+    Never store passwords in plain text. Generate SHA-256 hash:
+    ```bash
+    echo -n "your_secure_password" | sha256sum
+    ```
+    Update in `config.js`:
+    ```javascript
+    ADMIN_PASSWORD_HASH: 'generated_hash_here'
+    ```
+    
+    <Warning>
+    The default development password (`hello` / hash: `a665a459...`) MUST be changed before production deployment.
+    </Warning>
+  </Step>
+
+  <Step title="HTTPS Configuration">
+    Ensure your hosting platform serves content over HTTPS:
+    - **Netlify:** Automatic HTTPS (Let's Encrypt)
+    - **Vercel:** Automatic HTTPS
+    - **GitHub Pages:** Enable in Settings > Pages
+    
+    Never serve the admin interface over HTTP in production.
+  </Step>
+
+  <Step title="Login Attempt Limits">
+    Configure maximum login attempts in `config.js`:
+    ```javascript
+    MAX_LOGIN_ATTEMPTS: 3
+    ```
+    After 3 failed attempts, the system locks for 15 minutes.
+  </Step>
+
+  <Step title="Session Security">
+    Set appropriate session timeout:
+    ```javascript
+    SESSION_TIMEOUT: 30 // minutes
+    ```
+    Production recommendation: 30 minutes
+    Development: 120 minutes for convenience
+  </Step>
+
+  <Step title="Security Logging">
+    Enable comprehensive logging:
+    ```javascript
+    LOG_ALL_ACTIONS: true,
+    MAX_AUDIT_RECORDS: 1000
+    ```
+    Review logs regularly in `localStorage` (key: `ospadep_security_log`).
+  </Step>
+</Steps>
+
+## Password Security
+
+### SHA-256 Hashing Implementation
+
+OSPADEP uses SHA-256 for password hashing (see `security.js:14-21`):
+
+```javascript
+async hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+```
+
+### Generating Secure Passwords
+
+<Tabs>
+  <Tab title="Command Line">
+    **Linux/Mac:**
+    ```bash
+    echo -n "YourSecurePassword123!" | sha256sum
+    ```
+    
+    **Windows (PowerShell):**
+    ```powershell
+    $password = "YourSecurePassword123!"
+    $hash = [System.Security.Cryptography.SHA256]::Create()
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($password)
+    $hashBytes = $hash.ComputeHash($bytes)
+    ($hashBytes | ForEach-Object {$_.ToString("x2")}) -join ''
+    ```
+  </Tab>
+  
+  <Tab title="Online Tool">
+    Use a SHA-256 generator:
+    1. Go to a SHA-256 generator (e.g., https://emn178.github.io/online-tools/sha256.html)
+    2. Enter your password
+    3. Copy the hash
+    4. Update `config.js`
+    
+    <Warning>
+    Only use trusted tools for password hashing. Never use random online tools for production passwords.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Browser Console">
+    ```javascript
+    async function generateHash(password) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hash = await crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+    
+    // Usage:
+    generateHash('YourSecurePassword123!').then(console.log);
+    ```
+  </Tab>
+</Tabs>
+
+### Password Best Practices
+
+- **Minimum length:** 12 characters
+- **Complexity:** Mix uppercase, lowercase, numbers, and symbols
+- **Uniqueness:** Never reuse passwords from other systems
+- **Rotation:** Change passwords every 90 days
+- **Storage:** Store only the hash, never the plain text
+
+## Session Management
+
+### Session Validation
+
+The SecurityManager validates sessions on every page load (see `security.js:119-125`):
+
+```javascript
+isSessionValid() {
+    if (!this.sessionStart) return false;
+    
+    const sessionAge = (new Date() - this.sessionStart) / 1000 / 60; // minutes
+    return sessionAge < APP_CONFIG.SESSION_TIMEOUT;
+}
+```
+
+### Configuration Options
+
+<ParamField path="SESSION_TIMEOUT" type="number" default="30">
+  Session timeout in minutes. After this period of inactivity, users must log in again.
+  
+  **Recommended values:**
+  - Production: 30 minutes
+  - Development: 120 minutes
+  - High security: 15 minutes
+</ParamField>
+
+### Session Storage
+
+Sessions are stored in localStorage with:
+- Login timestamp
+- Session state (active/blocked)
+- Login attempts counter
+- Block expiration time
+
+<Warning>
+localStorage is accessible via JavaScript. For enhanced security with a backend, use HTTP-only cookies for session tokens.
+</Warning>
+
+## Login Protection
+
+### Brute Force Prevention
+
+Automatic lockout after failed attempts (see `security.js:99-109`):
+
+1. **3 failed attempts** → 15-minute lockout
+2. **Security log** records all attempts
+3. **Alert sent** to configured notification channels
+
+```javascript
+blockAccess() {
+    this.isBlocked = true;
+    this.blockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    
+    this.notifySecurityIncident('MULTIPLE_LOGIN_FAILURES', {
+        attempts: this.loginAttempts,
+        blockedUntil: this.blockUntil.toISOString()
+    });
+}
+```
+
+### Login Attempt Configuration
+
+<ParamField path="MAX_LOGIN_ATTEMPTS" type="number" default="3">
+  Maximum failed login attempts before temporary lockout.
+  
+  **Recommended:** 3 attempts (industry standard)
+</ParamField>
+
+## Security Logging
+
+### Event Types Logged
+
+- `LOGIN_SUCCESS` - Successful authentication
+- `LOGIN_FAILURE` - Failed login attempt
+- `LOGOUT` - User logout
+- `PRICE_UPDATE` - Price modification
+- `SECURITY_INCIDENT` - Suspicious activity
+
+### Log Structure
+
+Each security event includes:
+
+```javascript
+{
+    id: 1234567890,
+    type: 'LOGIN_SUCCESS',
+    timestamp: '2026-03-05T10:30:00.000Z',
+    data: {
+        userAgent: 'Mozilla/5.0...',
+        ip: 'client-side'
+    }
+}
+```
+
+### Accessing Security Logs
+
+View logs programmatically:
+
+```javascript
+const logs = JSON.parse(localStorage.getItem('ospadep_security_log') || '[]');
+console.table(logs);
+```
+
+<Note>
+Logs are stored locally and limited to 100 most recent events. For production, consider sending logs to a backend service.
+</Note>
+
+## HTTPS Configuration
+
+### Automatic HTTPS
+
+Most modern hosting platforms provide automatic HTTPS:
+
+<Tabs>
+  <Tab title="Netlify">
+    - Automatic Let's Encrypt SSL
+    - Auto-renewal
+    - Custom domain support
+    - Force HTTPS redirect (automatic)
+  </Tab>
+  
+  <Tab title="Vercel">
+    - Automatic SSL for all deployments
+    - Custom domains supported
+    - Edge network with HTTPS
+  </Tab>
+  
+  <Tab title="GitHub Pages">
+    1. Go to Settings > Pages
+    2. Check "Enforce HTTPS"
+    3. Wait for certificate provisioning (may take 24 hours)
+  </Tab>
+</Tabs>
+
+### Custom Domain HTTPS
+
+When using a custom domain:
+
+1. Add domain to hosting platform
+2. Update DNS records (A or CNAME)
+3. Wait for SSL certificate provisioning (5-60 minutes)
+4. Enable HTTPS enforcement
+
+<Warning>
+Never disable HTTPS in production. Healthcare data requires encrypted transmission.
+</Warning>
+
+## Environment Variables
+
+### Required Production Variables
+
+Store these securely in your hosting platform:
+
+<ParamField path="ENVIRONMENT" type="string" required>
+  Set to `production` for production deployment.
+</ParamField>
+
+<ParamField path="ADMIN_PASSWORD_HASH" type="string" required>
+  SHA-256 hash of admin password. Never store plain text password.
+</ParamField>
+
+<ParamField path="ADMIN_EMAIL" type="string">
+  Email address for security alerts (future feature).
+</ParamField>
+
+<ParamField path="SLACK_WEBHOOK" type="string">
+  Slack webhook URL for real-time security notifications.
+</ParamField>
+
+### Setting Environment Variables
+
+<Tabs>
+  <Tab title="Netlify">
+    1. Go to Site settings > Environment variables
+    2. Click "Add a variable"
+    3. Enter key and value
+    4. Redeploy site
+  </Tab>
+  
+  <Tab title="Vercel">
+    1. Go to Settings > Environment Variables
+    2. Add variable for Production
+    3. Redeploy
+  </Tab>
+  
+  <Tab title="Railway">
+    ```bash
+    railway variables set ADMIN_PASSWORD_HASH=your_hash_here
+    railway variables set ENVIRONMENT=production
+    ```
+  </Tab>
+</Tabs>
+
+## Security Notifications
+
+### Slack Integration
+
+Receive real-time security alerts via Slack:
+
+1. Create a Slack incoming webhook
+2. Add webhook URL to `config.js`:
+   ```javascript
+   SLACK_WEBHOOK: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+   ```
+
+3. Security incidents trigger automatic notifications:
+   - Multiple failed logins
+   - Account lockouts
+   - Suspicious activity
+
+### Email Alerts (Future)
+
+Configure admin email for notifications:
+
+```javascript
+ADMIN_EMAIL: 'admin@ospadep.com'
+```
+
+<Note>
+Email alerts require backend implementation (Option 2 deployment).
+</Note>
+
+## Security Best Practices
+
+### Development vs Production
+
+<CodeGroup>
+```javascript Development
+const CONFIG = {
+    ENVIRONMENT: 'development',
+    ADMIN_PASSWORD_HASH: null, // Simple password in dev
+    SESSION_TIMEOUT: 120,
+    MAX_LOGIN_ATTEMPTS: 10
+};
+```
+
+```javascript Production
+const CONFIG = {
+    ENVIRONMENT: 'production',
+    ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
+    SESSION_TIMEOUT: 30,
+    MAX_LOGIN_ATTEMPTS: 3
+};
+```
+</CodeGroup>
+
+### Security Checklist by Deployment Level
+
+<Tabs>
+  <Tab title="Basic (Option 1)">
+    - [x] Password hashed (SHA-256)
+    - [x] HTTPS enabled
+    - [x] Login attempt limits (3)
+    - [x] Session timeout (30 min)
+    - [x] Security logging
+    - [ ] Backend API (not needed)
+    - [ ] Database encryption (not applicable)
+  </Tab>
+  
+  <Tab title="Intermediate (Option 2)">
+    - [x] All Basic features
+    - [x] Backend API separated
+    - [x] External database
+    - [x] API authentication
+    - [x] Automatic backups
+    - [x] Basic monitoring
+    - [ ] OAuth (optional)
+  </Tab>
+  
+  <Tab title="Advanced (Option 3)">
+    - [x] All Intermediate features
+    - [x] OAuth authentication
+    - [x] Role-based access control
+    - [x] Data encryption at rest
+    - [x] Complete audit trail
+    - [x] Real-time monitoring
+    - [x] Disaster recovery plan
+  </Tab>
+</Tabs>
+
+## Incident Response
+
+### If Account is Locked
+
+1. Wait 15 minutes for automatic unlock
+2. Check security logs for suspicious activity
+3. If necessary, clear localStorage:
+   ```javascript
+   localStorage.removeItem('ospadep_security_state');
+   ```
+
+### If Password is Compromised
+
+<Steps>
+  <Step title="Generate New Hash">
+    Create a new secure password and generate its SHA-256 hash.
+  </Step>
+  
+  <Step title="Update Configuration">
+    Update `ADMIN_PASSWORD_HASH` in your environment variables or `config.js`.
+  </Step>
+  
+  <Step title="Redeploy">
+    Redeploy the application to apply changes.
+  </Step>
+  
+  <Step title="Review Logs">
+    Check security logs for unauthorized access.
+  </Step>
+</Steps>
+
+### Security Monitoring
+
+Regularly review:
+- Failed login attempts
+- Unusual access times
+- Price change patterns
+- Session duration anomalies
+
+<Tip>
+Schedule weekly security log reviews to identify potential threats early.
+</Tip>
+
+## Next Steps
+
+- Configure [Environment Variables](/deployment/configuration)
+- Set up monitoring and alerting
+- Review [Hosting Options](/deployment/hosting-options) for platform-specific security
+- Implement regular security audits
