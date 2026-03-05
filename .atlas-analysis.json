@@ -1,0 +1,102 @@
+{
+  "projectType": "saas",
+  "projectName": "Cotizador Online OSPADEP",
+  "projectDescription": "Healthcare plan quotation system for OSPADEP (Obra Social del Personal de Aeronavegación de Entes Privados) with multi-user administration, price management, and real-time synchronization capabilities.",
+  "theme": "palm",
+  "primaryColor": "#1053F3",
+  "lightColor": "#64748b",
+  "darkColor": "#0c3db8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart", "features"]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "user-guide/quotation-flow",
+              "user-guide/plan-selection",
+              "user-guide/price-calculator"
+            ]
+          },
+          {
+            "group": "Administration",
+            "pages": [
+              "admin/admin-panel",
+              "admin/price-management",
+              "admin/bulk-updates",
+              "admin/audit-system"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/multi-user-system",
+              "advanced/authentication",
+              "advanced/real-time-sync",
+              "advanced/data-management"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/overview",
+              "deployment/hosting-options",
+              "deployment/security",
+              "deployment/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Systems",
+            "pages": [
+              "api/auth-system",
+              "api/user-system",
+              "api/price-system",
+              "api/config"
+            ]
+          },
+          {
+            "group": "Data Structures",
+            "pages": [
+              "api/pricing-data",
+              "api/healthcare-plans",
+              "api/user-roles"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Multi-step healthcare plan quotation flow",
+    "Dynamic price calculator with age-based pricing",
+    "Multi-user authentication with role-based access control",
+    "Administrative panel for bulk price updates",
+    "Comprehensive audit logging and activity tracking",
+    "Real-time synchronization capabilities",
+    "External JSON-based price data management",
+    "Export and backup functionality"
+  ],
+  "publicApiSurface": [
+    "AuthenticationSystem.login()",
+    "AuthenticationSystem.logout()",
+    "AuthenticationSystem.createUser()",
+    "UserManager.login()",
+    "UserManager.logout()",
+    "UserManager.logActivity()",
+    "cargarPreciosExternos()",
+    "calcularPrecioPlan()",
+    "aplicarAumentoMasivo()",
+    "exportarConfiguracion()",
+    "obtenerHistorialCambios()"
+  ]
+}
